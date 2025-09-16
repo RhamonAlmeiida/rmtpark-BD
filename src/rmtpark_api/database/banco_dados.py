@@ -2,24 +2,33 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
+from dotenv import load_dotenv
 
-# ⚠️ configure seu .env (ou defina as variáveis diretamente)
-MYSQL_USER = os.getenv("MYSQL_USER", "root")
-MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "sua_senha")
-MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
-MYSQL_DB = os.getenv("MYSQL_DB", "rmtpark")
+# Carrega variáveis do .env
+load_dotenv()
 
-# 👉 usando PyMySQL
-SQLALCHEMY_DATABASE_URL = (
-    f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}/{MYSQL_DB}"
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_PORT = os.getenv("DB_PORT", "3306")
+DB_NAME = os.getenv("DB_NAME")
+
+SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+
+# Cria engine
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    pool_pre_ping=True  # Mantém conexão ativa
 )
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL, pool_pre_ping=True)
+# Sessão
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+# Base para models
 Base = declarative_base()
 
-# dependência de sessão
+
+# Dependência para injetar sessão no FastAPI
 def get_db():
     db = SessionLocal()
     try:

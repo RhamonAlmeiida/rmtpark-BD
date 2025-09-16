@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field, constr
 from passlib.context import CryptContext
 
 # Configuração do Passlib
@@ -18,20 +18,21 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 # 📌 Schemas Pydantic
 class EmpresaBase(BaseModel):
-    nome: str
-    empresa: str
+    nome: str = Field(..., min_length=2, max_length=100)
+    empresa: str = Field(..., min_length=2, max_length=100)
     email: EmailStr
-    telefone: str
-    cnpj: str
+    telefone: str = Field(..., min_length=8, max_length=20)
+    cnpj: constr(pattern=r"^\d{14}$")  # exatamente 14 dígitos
 
 
 class EmpresaCreate(EmpresaBase):
-    senha: str  # recebida em texto puro na criação
+    senha: str = Field(..., min_length=6, max_length=100)  # recebida em texto puro na criação
 
 
 class EmpresaOut(EmpresaBase):
     id: int
     email_confirmado: bool
 
-    class Config:
-        from_attributes = True
+    model_config = {
+        "from_attributes": True
+    }
