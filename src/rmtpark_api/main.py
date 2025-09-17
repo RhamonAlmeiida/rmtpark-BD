@@ -7,11 +7,11 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="RmtPark API")
 
-# Incluindo rotas
+
 app.include_router(auth.router)
 app.include_router(empresa.router)
 
-# Configuração do CORS
+
 origins = [
     "http://localhost:4200",  # Angular
     "http://127.0.0.1:4200",
@@ -19,10 +19,10 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # permite requisições só dessas origens
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],  # GET, POST, PUT, DELETE, etc.
-    allow_headers=["*"],  # Headers customizados
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.get("/")

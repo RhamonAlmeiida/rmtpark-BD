@@ -6,7 +6,6 @@ class Empresa(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     nome = Column(String(255), nullable=False)
-    empresa = Column(String(255), nullable=False)
     email = Column(String(255), unique=True, index=True, nullable=False)
     telefone = Column(String(20), nullable=False)
     cnpj = Column(String(20), unique=True, nullable=False)
