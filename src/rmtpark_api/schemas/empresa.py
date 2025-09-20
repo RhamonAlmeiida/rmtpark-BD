@@ -21,7 +21,7 @@ class EmpresaBase(BaseModel):
     nome: str = Field(..., min_length=2, max_length=100)
     email: EmailStr
     telefone: str = Field(..., min_length=8, max_length=20)
-    cnpj: constr(pattern=r"^\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}$")  # exatamente 14 dígitos
+    cnpj: constr(pattern=r"^\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}$")  # Formato: 00.000.000/0000-00
 
 
 class EmpresaCreate(EmpresaBase):

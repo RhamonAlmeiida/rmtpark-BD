@@ -29,7 +29,6 @@ def criar_empresa(empresa: EmpresaCreate, db: Session = Depends(banco_dados.get_
 
     nova_empresa = Empresa(
         nome=empresa.nome,
-        empresa=empresa.empresa,
         email=empresa.email,
         telefone=empresa.telefone,
         cnpj=empresa.cnpj,
