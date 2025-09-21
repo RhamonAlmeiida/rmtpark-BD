@@ -1,114 +1,138 @@
-from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from jose import jwt, JWTError
-from passlib.context import CryptContext
-import asyncio
-import os
+from jose import jwt
+from datetime import datetime, timedelta
+from pydantic import BaseModel
 
-from src.rmtpark_api.schemas.empresa import EmpresaCreate
-from src.rmtpark_api.database import banco_dados
-from src.rmtpark_api.database.modelos import Empresa
-from src.rmtpark_api.utils.email_utils import enviar_email_confirmacao  # 👈 importar utilitário de e-mail
+from ..database import banco_dados
+from ..database.modelos import Empresa
+from ..schemas.empresa import EmpresaCreate, EmpresaOut, hash_password, verify_password
+from ..utils.token_utils import create_confirmation_token, verify_confirmation_token
+from ..utils.email_utils import enviar_email_confirmacao, enviar_email_recuperacao
 
-router = APIRouter(prefix="/auth", tags=["Auth"])
-
-# ------------------ Config ------------------
-SECRET_KEY = os.getenv("SECRET_KEY", "sua_chave_secreta_aqui")  # 🔑 melhor usar .env
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-# ------------------ Funções utilitárias ------------------
-def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+# ============================
+#  CADASTRAR EMPRESA
+# ============================
+@router.post("/cadastrar", response_model=EmpresaOut)
+async def cadastrar(empresa: EmpresaCreate, db: Session = Depends(banco_dados.get_db)):
+    if db.query(Empresa).filter(Empresa.email == empresa.email).first():
+        raise HTTPException(status_code=400, detail="E-mail já cadastrado")
 
-
-def verificar_senha(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
-
-
-def criar_token_acesso(data: dict, expires_delta: timedelta | None = None):
-    to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-
-
-def criar_token_confirmacao(email: str):
-    """Cria token temporário para confirmar e-mail"""
-    expire = datetime.utcnow() + timedelta(hours=24)
-    to_encode = {"sub": email, "exp": expire}
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-
-
-# ------------------ Rotas ------------------
-@router.post("/cadastrar")
-def cadastrar(dados: EmpresaCreate, db: Session = Depends(banco_dados.get_db)):
-    empresa_existente = db.query(Empresa).filter(Empresa.cnpj == dados.cnpj).first()
-    if empresa_existente:
-        raise HTTPException(status_code=400, detail="CNPJ já cadastrado")
-
+    hashed_senha = hash_password(empresa.senha)
     nova_empresa = Empresa(
-        nome=dados.nome,
-        cnpj=dados.cnpj,
-        email=dados.email,
-        telefone=dados.telefone,
-        senha=hash_password(dados.senha),
-        email_confirmado=False  # 👈 começa como False
+        nome=empresa.nome,
+        email=empresa.email,
+        telefone=empresa.telefone,
+        cnpj=empresa.cnpj,
+        senha=hashed_senha,
+        email_confirmado=False,
     )
+
     db.add(nova_empresa)
     db.commit()
     db.refresh(nova_empresa)
 
-    # Gerar token de confirmação de e-mail
-    token_confirmacao = criar_token_confirmacao(nova_empresa.email)
-    link_confirmacao = f"http://localhost:8000/auth/confirmar-email?token={token_confirmacao}"
+    # envia email de confirmação
+    token = create_confirmation_token(nova_empresa.email)
+    link = f"http://localhost:4200/confirmar-email?token={token}"
+    await enviar_email_confirmacao(nova_empresa.email, link)
 
-    # 🔥 Envio do e-mail real
-    try:
-        asyncio.run(enviar_email_confirmacao(nova_empresa.email, link_confirmacao))
-    except Exception as e:
-        print(f"Erro ao enviar e-mail: {e}")
-
-    return {"msg": "Empresa cadastrada com sucesso. Confirme seu e-mail para ativar o login."}
+    return nova_empresa
 
 
 @router.get("/confirmar-email")
 def confirmar_email(token: str, db: Session = Depends(banco_dados.get_db)):
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email = payload.get("sub")
-        if email is None:
-            raise HTTPException(status_code=400, detail="Token inválido")
-    except JWTError:
+    email = verify_confirmation_token(token)
+    if not email:
         raise HTTPException(status_code=400, detail="Token inválido ou expirado")
 
     empresa = db.query(Empresa).filter(Empresa.email == email).first()
     if not empresa:
-        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
 
     empresa.email_confirmado = True
     db.commit()
 
-    return {"msg": "E-mail confirmado com sucesso! Agora você pode fazer login."}
+    return {"msg": "E-mail confirmado com sucesso! Pode fazer login."}
 
 
-@router.post("/login")
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(banco_dados.get_db)):
+# ============================
+#  LOGIN
+# ============================
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+@router.post("/login", response_model=TokenResponse)
+def login(form_data: OAuth2PasswordRequestForm = Depends(),
+          db: Session = Depends(banco_dados.get_db)):
     empresa = db.query(Empresa).filter(Empresa.email == form_data.username).first()
-    if not empresa or not verificar_senha(form_data.password, empresa.senha):
+    if not empresa or not verify_password(form_data.password, empresa.senha):
         raise HTTPException(status_code=401, detail="Credenciais inválidas")
 
-    # 🚨 Verifica se o e-mail foi confirmado
+    # ❌ VERIFICAÇÃO DO EMAIL
     if not empresa.email_confirmado:
-        raise HTTPException(status_code=403, detail="Confirme seu e-mail antes de fazer login.")
+        raise HTTPException(
+            status_code=403,
+            detail="E-mail não confirmado. Por favor, confirme seu e-mail antes de fazer login."
+        )
 
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = criar_token_acesso(
-        data={"sub": empresa.email}, expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
+    # cria token JWT de acesso
+    expire = datetime.utcnow() + timedelta(minutes=60)
+    to_encode = {"sub": empresa.email, "exp": expire}
+    SECRET_KEY = "supersecret"  # substitua pelo valor do .env
+    token = jwt.encode(to_encode, SECRET_KEY, algorithm="HS256")
+
+    return {"access_token": token, "token_type": "bearer"}
+
+
+
+# ============================
+#  RECUPERAR SENHA
+# ============================
+class RecuperarSenhaRequest(BaseModel):
+    email: str
+
+
+@router.post("/recuperar-senha")
+async def recuperar_senha(dados: RecuperarSenhaRequest, db: Session = Depends(banco_dados.get_db)):
+    empresa = db.query(Empresa).filter(Empresa.email == dados.email).first()
+    if not empresa:
+        raise HTTPException(status_code=404, detail="E-mail não encontrado")
+
+    token = create_confirmation_token(dados.email)
+    link = f"http://localhost:4200/redefinir-senha?token={token}"
+
+    # envia email de recuperação
+    await enviar_email_recuperacao(dados.email, link)
+
+    return {"msg": "Link de recuperação enviado para seu e-mail"}
+
+
+# ============================
+#  REDEFINIR SENHA
+# ============================
+class RedefinirSenhaRequest(BaseModel):
+    token: str
+    nova_senha: str
+
+
+@router.post("/redefinir-senha")
+def redefinir_senha(dados: RedefinirSenhaRequest, db: Session = Depends(banco_dados.get_db)):
+    email = verify_confirmation_token(dados.token)
+    if not email:
+        raise HTTPException(status_code=400, detail="Token inválido ou expirado")
+
+    empresa = db.query(Empresa).filter(Empresa.email == email).first()
+    if not empresa:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+
+    empresa.senha = hash_password(dados.nova_senha)
+    db.commit()
+
+    return {"msg": "Senha redefinida com sucesso"}

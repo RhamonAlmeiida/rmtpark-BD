@@ -17,11 +17,7 @@ conf = ConnectionConfig(
 )
 
 
-async def enviar_email_confirmacao(email: str, token: str):
-    """Envia e-mail com link de confirmação"""
-    # Link apontando para o frontend (Angular)
-    link = f"{token}"
-
+async def enviar_email_confirmacao(email: str, link: str):
     message = MessageSchema(
         subject="Confirme seu e-mail - RmtPark",
         recipients=[email],
@@ -33,6 +29,21 @@ async def enviar_email_confirmacao(email: str, token: str):
         """,
         subtype="html"
     )
+    fm = FastMail(conf)
+    await fm.send_message(message)
 
+
+async def enviar_email_recuperacao(email: str, link: str):
+    message = MessageSchema(
+        subject="Recuperação de senha - RmtPark",
+        recipients=[email],
+        body=f"""
+        <h2>Recuperação de senha</h2>
+        <p>Recebemos uma solicitação para redefinir sua senha.</p>
+        <a href="{link}">👉 Redefinir senha</a>
+        <p>Se você não solicitou esta ação, ignore esta mensagem.</p>
+        """,
+        subtype="html"
+    )
     fm = FastMail(conf)
     await fm.send_message(message)
