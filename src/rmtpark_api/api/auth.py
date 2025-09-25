@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from jose import jwt
+from jose import jwt, JWTError
 from datetime import datetime, timedelta
 from pydantic import BaseModel
+import os
 
 from ..database import banco_dados
 from ..database.modelos import Empresa
@@ -13,10 +14,42 @@ from ..utils.email_utils import enviar_email_confirmacao, enviar_email_recuperac
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+# ==========================================
+# CONFIGURAÇÃO DE JWT
+# ==========================================
+SECRET_KEY = os.getenv("SECRET_KEY", "supersecret")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
+REFRESH_TOKEN_EXPIRE_DAYS = 7
 
-# ============================
-#  CADASTRAR EMPRESA
-# ============================
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+
+
+# ==========================================
+# FUNÇÃO PARA PEGAR EMPRESA AUTENTICADA
+# ==========================================
+def get_current_empresa(
+    db: Session = Depends(banco_dados.get_db),
+    token: str = Depends(oauth2_scheme)
+) -> Empresa:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if not email:
+            raise HTTPException(status_code=401, detail="Token inválido")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Token inválido")
+
+    empresa = db.query(Empresa).filter(Empresa.email == email).first()
+    if not empresa:
+        raise HTTPException(status_code=401, detail="Empresa não encontrada")
+
+    return empresa
+
+
+# ==========================================
+# CADASTRAR EMPRESA
+# ==========================================
 @router.post("/cadastrar", response_model=EmpresaOut)
 async def cadastrar(empresa: EmpresaCreate, db: Session = Depends(banco_dados.get_db)):
     if db.query(Empresa).filter(Empresa.email == empresa.email).first():
@@ -44,6 +77,9 @@ async def cadastrar(empresa: EmpresaCreate, db: Session = Depends(banco_dados.ge
     return nova_empresa
 
 
+# ==========================================
+# CONFIRMAR EMAIL
+# ==========================================
 @router.get("/confirmar-email")
 def confirmar_email(token: str, db: Session = Depends(banco_dados.get_db)):
     email = verify_confirmation_token(token)
@@ -60,12 +96,31 @@ def confirmar_email(token: str, db: Session = Depends(banco_dados.get_db)):
     return {"msg": "E-mail confirmado com sucesso! Pode fazer login."}
 
 
-# ============================
-#  LOGIN
-# ============================
+# ==========================================
+# LOGIN COM ACCESS E REFRESH TOKENS
+# ==========================================
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
+
+
+def create_tokens(email: str):
+    now = datetime.utcnow()
+
+    access_token_expires = now + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = jwt.encode(
+        {"sub": email, "exp": access_token_expires}, SECRET_KEY, algorithm=ALGORITHM
+    )
+
+    refresh_token_expires = now + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    refresh_token = jwt.encode(
+        {"sub": email, "exp": refresh_token_expires, "type": "refresh"},
+        SECRET_KEY,
+        algorithm=ALGORITHM
+    )
+
+    return access_token, refresh_token
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -75,26 +130,40 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(),
     if not empresa or not verify_password(form_data.password, empresa.senha):
         raise HTTPException(status_code=401, detail="Credenciais inválidas")
 
-    # ❌ VERIFICAÇÃO DO EMAIL
     if not empresa.email_confirmado:
         raise HTTPException(
             status_code=403,
-            detail="E-mail não confirmado. Por favor, confirme seu e-mail antes de fazer login."
+            detail="E-mail não confirmado. Confirme seu e-mail antes de fazer login."
         )
 
-    # cria token JWT de acesso
-    expire = datetime.utcnow() + timedelta(minutes=60)
-    to_encode = {"sub": empresa.email, "exp": expire}
-    SECRET_KEY = "supersecret"  # substitua pelo valor do .env
-    token = jwt.encode(to_encode, SECRET_KEY, algorithm="HS256")
-
-    return {"access_token": token, "token_type": "bearer"}
+    access_token, refresh_token = create_tokens(empresa.email)
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
 
+# ==========================================
+# ROTA PARA GERAR NOVO ACCESS TOKEN COM REFRESH TOKEN
+# ==========================================
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
 
-# ============================
-#  RECUPERAR SENHA
-# ============================
+
+@router.post("/refresh-token", response_model=TokenResponse)
+def refresh_token(data: RefreshTokenRequest):
+    try:
+        payload = jwt.decode(data.refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("type") != "refresh":
+            raise HTTPException(status_code=401, detail="Token inválido")
+        email = payload.get("sub")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Token inválido ou expirado")
+
+    access_token, refresh_token = create_tokens(email)
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
+
+
+# ==========================================
+# RECUPERAR SENHA
+# ==========================================
 class RecuperarSenhaRequest(BaseModel):
     email: str
 
@@ -108,15 +177,14 @@ async def recuperar_senha(dados: RecuperarSenhaRequest, db: Session = Depends(ba
     token = create_confirmation_token(dados.email)
     link = f"http://localhost:4200/redefinir-senha?token={token}"
 
-    # envia email de recuperação
     await enviar_email_recuperacao(dados.email, link)
 
     return {"msg": "Link de recuperação enviado para seu e-mail"}
 
 
-# ============================
-#  REDEFINIR SENHA
-# ============================
+# ==========================================
+# REDEFINIR SENHA
+# ==========================================
 class RedefinirSenhaRequest(BaseModel):
     token: str
     nova_senha: str
