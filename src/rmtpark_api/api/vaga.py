@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
-
+import pytz
 from ..database import modelos
 from ..database.banco_dados import get_db
 from ..schemas import vaga as vaga_schema
@@ -23,13 +23,14 @@ def criar_vaga(
     nova_vaga = Vaga(
         placa=vaga.placa.upper(),
         tipo=vaga.tipo,
-        data_hora=datetime.utcnow(),  # hora de entrada automática
+        data_hora=vaga.data_hora.replace(tzinfo=None) if vaga.data_hora else None,
         empresa_id=empresa_logada.id
     )
     db.add(nova_vaga)
     db.commit()
     db.refresh(nova_vaga)
     return nova_vaga
+
 
 # ------------------- BUSCAR VAGA -------------------
 @router.get("/{vaga_id}", response_model=vaga_schema.VagaResponse)
