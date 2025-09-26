@@ -2,23 +2,40 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 
+# ------------------- BASE -------------------
 class VagaBase(BaseModel):
     placa: str
     tipo: str
-    data_hora: Optional[datetime] = Field(default=None, alias="data_hora")
+    data_hora: Optional[datetime] = Field(default=None, alias="data_hora")  # hora de entrada
 
     class Config:
-        from_attributes = True   # substitui orm_mode
-        populate_by_name = True  # substitui allow_population_by_field_name
+        from_attributes = True  # substitui orm_mode no Pydantic v2
+        validate_by_name = True
 
-
+# ------------------- CREATE -------------------
 class VagaCreate(VagaBase):
     pass
 
-
+# ------------------- RESPONSE -------------------
 class VagaResponse(VagaBase):
     id: int
     empresa_id: int
+    data_hora_saida: Optional[datetime] = None
+    duracao: Optional[str] = None
+    valor: Optional[float] = None
+    forma_pagamento: Optional[str] = None
 
     class Config:
         from_attributes = True
+        validate_by_name = True
+
+# ------------------- SAÍDA -------------------
+class VagaSaidaSchema(BaseModel):
+    data_hora_saida: datetime
+    duracao: str
+    valor: float
+    forma_pagamento: str
+
+    class Config:
+        from_attributes = True
+        validate_by_name = True

@@ -1,17 +1,19 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from src.rmtpark_api.api import auth, empresa, vaga
+from src.rmtpark_api.api import auth, empresa, vaga, relatorio
 from src.rmtpark_api.database.banco_dados import Base, engine
 
+
+
+
+# Cria todas as tabelas
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="RmtPark API")
 
 
-
-
 origins = [
-    "http://localhost:4200",  # Angular
+    "http://localhost:4200",  #
     "http://127.0.0.1:4200",
 ]
 
@@ -23,9 +25,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Routers
 app.include_router(auth.router, prefix="/api")
 app.include_router(empresa.router, prefix="/api/empresa")
 app.include_router(vaga.router, prefix="/api/vagas")
+app.include_router(relatorio.router, prefix="/api/relatorios")
 
 @app.get("/")
 def home():
