@@ -1,10 +1,11 @@
+# src/rmtpark_api/api/auth.py
+import os
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from jose import jwt, JWTError
-from datetime import datetime, timedelta
 from pydantic import BaseModel
-import os
 
 from ..database import banco_dados
 from ..database.modelos import Empresa
@@ -22,8 +23,9 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+FRONT_URL = os.getenv("FRONT_URL", "http://localhost:4200")
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 # ==========================================
 # FUNÇÃO PARA PEGAR EMPRESA AUTENTICADA
@@ -45,7 +47,6 @@ def get_current_empresa(
         raise HTTPException(status_code=401, detail="Empresa não encontrada")
 
     return empresa
-
 
 # ==========================================
 # CADASTRAR EMPRESA
@@ -69,13 +70,12 @@ async def cadastrar(empresa: EmpresaCreate, db: Session = Depends(banco_dados.ge
     db.commit()
     db.refresh(nova_empresa)
 
-    # envia email de confirmação
+    # envia email de confirmação com FRONT_URL
     token = create_confirmation_token(nova_empresa.email)
-    link = f"http://localhost:4200/confirmar-email?token={token}"
+    link = f"{FRONT_URL}/confirmar-email?token={token}"
     await enviar_email_confirmacao(nova_empresa.email, link)
 
     return nova_empresa
-
 
 # ==========================================
 # CONFIRMAR EMAIL
@@ -95,7 +95,6 @@ def confirmar_email(token: str, db: Session = Depends(banco_dados.get_db)):
 
     return {"msg": "E-mail confirmado com sucesso! Pode fazer login."}
 
-
 # ==========================================
 # LOGIN COM ACCESS E REFRESH TOKENS
 # ==========================================
@@ -103,7 +102,6 @@ class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
-
 
 def create_tokens(email: str):
     now = datetime.utcnow()
@@ -122,7 +120,6 @@ def create_tokens(email: str):
 
     return access_token, refresh_token
 
-
 @router.post("/login", response_model=TokenResponse)
 def login(form_data: OAuth2PasswordRequestForm = Depends(),
           db: Session = Depends(banco_dados.get_db)):
@@ -139,13 +136,11 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(),
     access_token, refresh_token = create_tokens(empresa.email)
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
-
 # ==========================================
-# ROTA PARA GERAR NOVO ACCESS TOKEN COM REFRESH TOKEN
+# REFRESH TOKEN
 # ==========================================
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
-
 
 @router.post("/refresh-token", response_model=TokenResponse)
 def refresh_token(data: RefreshTokenRequest):
@@ -160,13 +155,11 @@ def refresh_token(data: RefreshTokenRequest):
     access_token, refresh_token = create_tokens(email)
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
-
 # ==========================================
 # RECUPERAR SENHA
 # ==========================================
 class RecuperarSenhaRequest(BaseModel):
     email: str
-
 
 @router.post("/recuperar-senha")
 async def recuperar_senha(dados: RecuperarSenhaRequest, db: Session = Depends(banco_dados.get_db)):
@@ -175,12 +168,11 @@ async def recuperar_senha(dados: RecuperarSenhaRequest, db: Session = Depends(ba
         raise HTTPException(status_code=404, detail="E-mail não encontrado")
 
     token = create_confirmation_token(dados.email)
-    link = f"http://localhost:4200/redefinir-senha?token={token}"
+    link = f"{FRONT_URL}/redefinir-senha?token={token}"
 
     await enviar_email_recuperacao(dados.email, link)
 
     return {"msg": "Link de recuperação enviado para seu e-mail"}
-
 
 # ==========================================
 # REDEFINIR SENHA
@@ -188,7 +180,6 @@ async def recuperar_senha(dados: RecuperarSenhaRequest, db: Session = Depends(ba
 class RedefinirSenhaRequest(BaseModel):
     token: str
     nova_senha: str
-
 
 @router.post("/redefinir-senha")
 def redefinir_senha(dados: RedefinirSenhaRequest, db: Session = Depends(banco_dados.get_db)):
