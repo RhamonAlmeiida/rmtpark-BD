@@ -13,23 +13,27 @@ from ..schemas.empresa import EmpresaCreate, EmpresaOut, hash_password, verify_p
 from ..utils.token_utils import create_confirmation_token, verify_confirmation_token
 from ..utils.email_utils import enviar_email_confirmacao, enviar_email_recuperacao
 
+# -----------------------
+# Router
+# -----------------------
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# ==========================================
-# CONFIGURAÇÃO DE JWT
-# ==========================================
+# -----------------------
+# JWT Config
+# -----------------------
 SECRET_KEY = os.getenv("SECRET_KEY", "supersecret")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
-REFRESH_TOKEN_EXPIRE_DAYS = 7
+ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 1 hora
+REFRESH_TOKEN_EXPIRE_DAYS = 7     # 7 dias
 
 FRONT_URL = os.getenv("FRONT_URL", "http://localhost:4200")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
-# ==========================================
-# FUNÇÃO PARA PEGAR EMPRESA AUTENTICADA
-# ==========================================
+
+# -----------------------
+# Função para pegar empresa logada
+# -----------------------
 def get_current_empresa(
     db: Session = Depends(banco_dados.get_db),
     token: str = Depends(oauth2_scheme)
@@ -40,7 +44,7 @@ def get_current_empresa(
         if not email:
             raise HTTPException(status_code=401, detail="Token inválido")
     except JWTError:
-        raise HTTPException(status_code=401, detail="Token inválido")
+        raise HTTPException(status_code=401, detail="Token inválido ou expirado")
 
     empresa = db.query(Empresa).filter(Empresa.email == email).first()
     if not empresa:
@@ -48,9 +52,10 @@ def get_current_empresa(
 
     return empresa
 
-# ==========================================
-# CADASTRAR EMPRESA
-# ==========================================
+
+# -----------------------
+# Cadastro de empresa
+# -----------------------
 @router.post("/cadastrar", response_model=EmpresaOut)
 async def cadastrar(empresa: EmpresaCreate, db: Session = Depends(banco_dados.get_db)):
     if db.query(Empresa).filter(Empresa.email == empresa.email).first():
@@ -70,16 +75,16 @@ async def cadastrar(empresa: EmpresaCreate, db: Session = Depends(banco_dados.ge
     db.commit()
     db.refresh(nova_empresa)
 
-    # envia email de confirmação com FRONT_URL
+    # envia email de confirmação com token puro
     token = create_confirmation_token(nova_empresa.email)
-    link = f"{FRONT_URL}/confirmar-email?token={token}"
-    await enviar_email_confirmacao(nova_empresa.email, link)
+    await enviar_email_confirmacao(nova_empresa.email, token)
 
     return nova_empresa
 
-# ==========================================
-# CONFIRMAR EMAIL
-# ==========================================
+
+# -----------------------
+# Confirmar email
+# -----------------------
 @router.get("/confirmar-email")
 def confirmar_email(token: str, db: Session = Depends(banco_dados.get_db)):
     email = verify_confirmation_token(token)
@@ -93,22 +98,26 @@ def confirmar_email(token: str, db: Session = Depends(banco_dados.get_db)):
     empresa.email_confirmado = True
     db.commit()
 
-    return {"msg": "E-mail confirmado com sucesso! Pode fazer login."}
+    return {"msg": "E-mail confirmado com sucesso! Agora você pode fazer login."}
 
-# ==========================================
-# LOGIN COM ACCESS E REFRESH TOKENS
-# ==========================================
+
+# -----------------------
+# Login com access e refresh token
+# -----------------------
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+
 
 def create_tokens(email: str):
     now = datetime.utcnow()
 
     access_token_expires = now + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = jwt.encode(
-        {"sub": email, "exp": access_token_expires}, SECRET_KEY, algorithm=ALGORITHM
+        {"sub": email, "exp": access_token_expires},
+        SECRET_KEY,
+        algorithm=ALGORITHM
     )
 
     refresh_token_expires = now + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
@@ -119,6 +128,7 @@ def create_tokens(email: str):
     )
 
     return access_token, refresh_token
+
 
 @router.post("/login", response_model=TokenResponse)
 def login(form_data: OAuth2PasswordRequestForm = Depends(),
@@ -136,11 +146,13 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(),
     access_token, refresh_token = create_tokens(empresa.email)
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
-# ==========================================
-# REFRESH TOKEN
-# ==========================================
+
+# -----------------------
+# Refresh token
+# -----------------------
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
+
 
 @router.post("/refresh-token", response_model=TokenResponse)
 def refresh_token(data: RefreshTokenRequest):
@@ -155,11 +167,13 @@ def refresh_token(data: RefreshTokenRequest):
     access_token, refresh_token = create_tokens(email)
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
-# ==========================================
-# RECUPERAR SENHA
-# ==========================================
+
+# -----------------------
+# Recuperar senha
+# -----------------------
 class RecuperarSenhaRequest(BaseModel):
     email: str
+
 
 @router.post("/recuperar-senha")
 async def recuperar_senha(dados: RecuperarSenhaRequest, db: Session = Depends(banco_dados.get_db)):
@@ -168,18 +182,18 @@ async def recuperar_senha(dados: RecuperarSenhaRequest, db: Session = Depends(ba
         raise HTTPException(status_code=404, detail="E-mail não encontrado")
 
     token = create_confirmation_token(dados.email)
-    link = f"{FRONT_URL}/redefinir-senha?token={token}"
-
-    await enviar_email_recuperacao(dados.email, link)
+    await enviar_email_recuperacao(dados.email, token)
 
     return {"msg": "Link de recuperação enviado para seu e-mail"}
 
-# ==========================================
-# REDEFINIR SENHA
-# ==========================================
+
+# -----------------------
+# Redefinir senha
+# -----------------------
 class RedefinirSenhaRequest(BaseModel):
     token: str
     nova_senha: str
+
 
 @router.post("/redefinir-senha")
 def redefinir_senha(dados: RedefinirSenhaRequest, db: Session = Depends(banco_dados.get_db)):

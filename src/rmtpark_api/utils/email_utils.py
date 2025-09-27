@@ -16,32 +16,18 @@ conf = ConnectionConfig(
     VALIDATE_CERTS=True
 )
 
-
-import os
-from fastapi_mail import FastMail, MessageSchema
-
 async def enviar_email_confirmacao(email: str, token: str):
-    """
-    Envia e-mail de confirmação para o usuário.
-    O link aponta para o front-end em produção.
-    """
-    frontend_url = os.getenv("FRONTEND_URL", "https://rmtpark-tcc-u856.vercel.app")
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:4200")
     link = f"{frontend_url}/confirmar-email?token={token}"
-
     message = MessageSchema(
         subject="Confirme seu e-mail - RmtPark",
         recipients=[email],
-        body=f"""
-        <h2>Bem-vindo ao RmtPark 🚗</h2>
-        <p>Para ativar sua conta, confirme seu e-mail clicando no link abaixo:</p>
-        <a href="{link}">👉 Confirmar e-mail</a>
-        <p>Se você não fez este cadastro, ignore esta mensagem.</p>
-        """,
+        body=f'<h2>Bem-vindo!</h2><p>Confirme seu e-mail: <a href="{link}">Confirmar</a></p>',
         subtype="html"
     )
-
     fm = FastMail(conf)
     await fm.send_message(message)
+
 
 
 
