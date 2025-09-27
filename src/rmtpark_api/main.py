@@ -13,7 +13,10 @@ app = FastAPI(title="RmtPark API")
 origins = [
     "http://localhost:4200",
     "http://127.0.0.1:4200",
+    "https://rmtpark.netlify.app",
+    "https://api.rmt-park.com"
 ]
+
 
 app.add_middleware(
     CORSMiddleware,
