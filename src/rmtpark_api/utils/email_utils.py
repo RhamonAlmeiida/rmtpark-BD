@@ -67,3 +67,5 @@ async def enviar_email_recuperacao(email: str, token: str):
 
     fm = FastMail(conf)
     await fm.send_message(message)
+
+
