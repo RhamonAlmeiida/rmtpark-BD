@@ -1,12 +1,12 @@
-from sqlalchemy import engine_from_config, pool
-from logging.config import fileConfig
-from alembic import context
 import os
+from logging.config import fileConfig
+from sqlalchemy import engine_from_config, pool
+from alembic import context
 
 config = context.config
+fileConfig(config.config_file_name)
 
-# Se estiver usando variável de ambiente
-DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:senha@localhost:3306/rmtpark")
+DATABASE_URL = os.getenv("DATABASE_URL")
 config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 def run_migrations_online():
@@ -15,4 +15,14 @@ def run_migrations_online():
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
+
+    with connectable.connect() as connection:
+        context.configure(connection=connection, target_metadata=None)
+
+        with context.begin_transaction():
+            context.run_migrations()
+
+if context.is_offline_mode():
     ...
+else:
+    run_migrations_online()

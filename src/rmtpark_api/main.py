@@ -17,10 +17,9 @@ origins = [
     "https://api.rmt-park.com"
 ]
 
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -36,9 +35,8 @@ app.include_router(relatorio.router, prefix="/api/relatorios")
 def home():
     return {"status": "API RmtPark funcionando 🚀"}
 
-# Executa somente se rodar localmente
+# Executa local
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("PORT", 8000))  # pega porta do Render ou usa 8000 local
-    reload_env = os.environ.get("ENV", "local") == "local"  # só faz reload em dev
-    uvicorn.run("src.rmtpark_api.main:app", host="0.0.0.0", port=port, reload=reload_env)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("src.rmtpark_api.main:app", host="0.0.0.0", port=port, reload=True)
