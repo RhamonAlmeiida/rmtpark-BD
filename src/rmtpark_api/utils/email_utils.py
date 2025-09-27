@@ -17,7 +17,17 @@ conf = ConnectionConfig(
 )
 
 
-async def enviar_email_confirmacao(email: str, link: str):
+import os
+from fastapi_mail import FastMail, MessageSchema
+
+async def enviar_email_confirmacao(email: str, token: str):
+    """
+    Envia e-mail de confirmação para o usuário.
+    O link aponta para o front-end em produção.
+    """
+    frontend_url = os.getenv("FRONTEND_URL", "https://rmtpark-tcc-u856.vercel.app")
+    link = f"{frontend_url}/confirmar-email?token={token}"
+
     message = MessageSchema(
         subject="Confirme seu e-mail - RmtPark",
         recipients=[email],
@@ -29,11 +39,20 @@ async def enviar_email_confirmacao(email: str, link: str):
         """,
         subtype="html"
     )
+
     fm = FastMail(conf)
     await fm.send_message(message)
 
 
-async def enviar_email_recuperacao(email: str, link: str):
+
+async def enviar_email_recuperacao(email: str, token: str):
+    """
+    Envia e-mail de recuperação de senha para o usuário.
+    O link aponta para o front-end em produção.
+    """
+    frontend_url = os.getenv("FRONTEND_URL", "https://rmtpark-tcc-u856.vercel.app")
+    link = f"{frontend_url}/redefinir-senha?token={token}"
+
     message = MessageSchema(
         subject="Recuperação de senha - RmtPark",
         recipients=[email],
@@ -45,5 +64,6 @@ async def enviar_email_recuperacao(email: str, link: str):
         """,
         subtype="html"
     )
+
     fm = FastMail(conf)
     await fm.send_message(message)
