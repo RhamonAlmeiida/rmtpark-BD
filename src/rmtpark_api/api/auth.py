@@ -16,7 +16,7 @@ from ..utils.email_utils import enviar_email_confirmacao, enviar_email_recuperac
 # -----------------------
 # Router
 # -----------------------
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter(tags=["auth"])
 
 # -----------------------
 # JWT Config
