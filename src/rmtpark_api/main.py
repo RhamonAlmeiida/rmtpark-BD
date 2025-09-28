@@ -14,12 +14,13 @@ origins = [
     "http://localhost:4200",
     "http://127.0.0.1:4200",
     "https://rmtpark-tcc-u856.vercel.app",
-    "https://api.rmt-park.com"
+    "https://rmtpark-bd.onrender.com",
 ]
+
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
