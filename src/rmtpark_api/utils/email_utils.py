@@ -4,10 +4,9 @@ load_dotenv()  # Carrega o .env antes de pegar as variáveis
 
 import os
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
-from typing import Optional
 
 # -----------------------
-# Configuração do FastMail
+# Configuração do FastMail pronta para produção
 # -----------------------
 conf = ConnectionConfig(
     MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
@@ -15,11 +14,12 @@ conf = ConnectionConfig(
     MAIL_FROM=os.getenv("MAIL_FROM"),
     MAIL_PORT=int(os.getenv("MAIL_PORT", 587)),
     MAIL_SERVER=os.getenv("MAIL_SERVER"),
-    MAIL_TLS=True,
-    MAIL_SSL=False,
+    MAIL_STARTTLS=os.getenv("MAIL_STARTTLS", "True") == "True",
+    MAIL_SSL_TLS=os.getenv("MAIL_SSL_TLS", "False") == "True",
     USE_CREDENTIALS=True,
     VALIDATE_CERTS=True,
 )
+
 
 # URL do frontend
 FRONT_URL = os.getenv("FRONT_URL", "http://localhost:4200")
@@ -28,18 +28,12 @@ FRONT_URL = os.getenv("FRONT_URL", "http://localhost:4200")
 # Função para montar link de confirmação
 # -----------------------
 def montar_link_confirmacao(token: str) -> str:
-    """
-    Monta o link completo de confirmação de e-mail
-    """
     return f"{FRONT_URL}/confirmar-email?token={token}"
 
 # -----------------------
 # Função para enviar e-mail de confirmação
 # -----------------------
 async def enviar_email_confirmacao(destinatario: str, link: str):
-    """
-    Envia e-mail de confirmação de cadastro
-    """
     assunto = "Confirme seu e-mail"
     corpo = f"""
     Olá! 👋<br><br>
@@ -61,9 +55,6 @@ async def enviar_email_confirmacao(destinatario: str, link: str):
 # Função para enviar e-mail de recuperação de senha
 # -----------------------
 async def enviar_email_recuperacao(destinatario: str, token: str):
-    """
-    Envia e-mail de recuperação de senha
-    """
     link = f"{FRONT_URL}/redefinir-senha?token={token}"
     assunto = "Recuperação de senha"
     corpo = f"""
