@@ -11,7 +11,7 @@ from ..database import banco_dados
 from ..database.modelos import Empresa
 from ..schemas.empresa import EmpresaCreate, EmpresaOut, hash_password, verify_password
 from ..utils.token_utils import create_confirmation_token, verify_confirmation_token
-from ..utils.email_utils import enviar_email_confirmacao, enviar_email_recuperacao
+from ..utils.email_utils import enviar_email_confirmacao, enviar_email_recuperacao, montar_link_confirmacao
 
 # -----------------------
 # Router
@@ -26,10 +26,10 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 1 hora
 REFRESH_TOKEN_EXPIRE_DAYS = 7     # 7 dias
 
-FRONT_URL = os.getenv("FRONT_URL", "http://localhost:4200")
+# FRONT_URL deve ser o endereço do seu frontend
+FRONT_URL = os.getenv("FRONT_URL")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
-
 
 # -----------------------
 # Função para pegar empresa logada
@@ -52,15 +52,18 @@ def get_current_empresa(
 
     return empresa
 
-
 # -----------------------
 # Cadastro de empresa
 # -----------------------
 @router.post("/cadastrar", response_model=EmpresaOut)
 async def cadastrar(empresa: EmpresaCreate, db: Session = Depends(banco_dados.get_db)):
+    # Verifica email e CNPJ duplicados
     if db.query(Empresa).filter(Empresa.email == empresa.email).first():
         raise HTTPException(status_code=400, detail="E-mail já cadastrado")
+    if db.query(Empresa).filter(Empresa.cnpj == empresa.cnpj).first():
+        raise HTTPException(status_code=400, detail="CNPJ já cadastrado")
 
+    # Cria nova empresa com senha hash
     hashed_senha = hash_password(empresa.senha)
     nova_empresa = Empresa(
         nome=empresa.nome,
@@ -75,12 +78,14 @@ async def cadastrar(empresa: EmpresaCreate, db: Session = Depends(banco_dados.ge
     db.commit()
     db.refresh(nova_empresa)
 
-    # envia email de confirmação com token puro
+    # Cria token de confirmação
     token = create_confirmation_token(nova_empresa.email)
-    await enviar_email_confirmacao(nova_empresa.email, token)
+
+    # Monta link correto dependendo do ambiente
+    link = montar_link_confirmacao(token)
+    await enviar_email_confirmacao(nova_empresa.email, link=link)
 
     return nova_empresa
-
 
 # -----------------------
 # Confirmar email
@@ -100,7 +105,6 @@ def confirmar_email(token: str, db: Session = Depends(banco_dados.get_db)):
 
     return {"msg": "E-mail confirmado com sucesso! Agora você pode fazer login."}
 
-
 # -----------------------
 # Login com access e refresh token
 # -----------------------
@@ -108,7 +112,6 @@ class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
-
 
 def create_tokens(email: str):
     now = datetime.utcnow()
@@ -129,7 +132,6 @@ def create_tokens(email: str):
 
     return access_token, refresh_token
 
-
 @router.post("/login", response_model=TokenResponse)
 def login(form_data: OAuth2PasswordRequestForm = Depends(),
           db: Session = Depends(banco_dados.get_db)):
@@ -146,13 +148,11 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(),
     access_token, refresh_token = create_tokens(empresa.email)
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
-
 # -----------------------
 # Refresh token
 # -----------------------
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
-
 
 @router.post("/refresh-token", response_model=TokenResponse)
 def refresh_token(data: RefreshTokenRequest):
@@ -167,13 +167,11 @@ def refresh_token(data: RefreshTokenRequest):
     access_token, refresh_token = create_tokens(email)
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
-
 # -----------------------
 # Recuperar senha
 # -----------------------
 class RecuperarSenhaRequest(BaseModel):
     email: str
-
 
 @router.post("/recuperar-senha")
 async def recuperar_senha(dados: RecuperarSenhaRequest, db: Session = Depends(banco_dados.get_db)):
@@ -182,10 +180,10 @@ async def recuperar_senha(dados: RecuperarSenhaRequest, db: Session = Depends(ba
         raise HTTPException(status_code=404, detail="E-mail não encontrado")
 
     token = create_confirmation_token(dados.email)
-    await enviar_email_recuperacao(dados.email, token)
+    link = montar_link_confirmacao(token)  # mesmo esquema de link para recuperação
+    await enviar_email_recuperacao(dados.email, link=link)
 
     return {"msg": "Link de recuperação enviado para seu e-mail"}
-
 
 # -----------------------
 # Redefinir senha
@@ -193,7 +191,6 @@ async def recuperar_senha(dados: RecuperarSenhaRequest, db: Session = Depends(ba
 class RedefinirSenhaRequest(BaseModel):
     token: str
     nova_senha: str
-
 
 @router.post("/redefinir-senha")
 def redefinir_senha(dados: RedefinirSenhaRequest, db: Session = Depends(banco_dados.get_db)):

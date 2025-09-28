@@ -1,57 +1,83 @@
-from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
-import os
+# src/rmtpark_api/utils/email_utils.py
 from dotenv import load_dotenv
+load_dotenv()  # Carrega o .env antes de pegar as variáveis
 
-load_dotenv()
+import os
+from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
+from typing import Optional
 
+# -----------------------
+# Configuração do FastMail
+# -----------------------
 conf = ConnectionConfig(
     MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
     MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
     MAIL_FROM=os.getenv("MAIL_FROM"),
     MAIL_PORT=int(os.getenv("MAIL_PORT", 587)),
-    MAIL_SERVER=os.getenv("MAIL_SERVER", "smtp.gmail.com"),
-    MAIL_STARTTLS=True,
-    MAIL_SSL_TLS=False,
+    MAIL_SERVER=os.getenv("MAIL_SERVER"),
+    MAIL_TLS=True,
+    MAIL_SSL=False,
     USE_CREDENTIALS=True,
-    VALIDATE_CERTS=True
+    VALIDATE_CERTS=True,
 )
 
-async def enviar_email_confirmacao(email: str, token: str):
-    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:4200")
-    link = f"{frontend_url}/confirmar-email?token={token}"
+# URL do frontend
+FRONT_URL = os.getenv("FRONT_URL", "http://localhost:4200")
+
+# -----------------------
+# Função para montar link de confirmação
+# -----------------------
+def montar_link_confirmacao(token: str) -> str:
+    """
+    Monta o link completo de confirmação de e-mail
+    """
+    return f"{FRONT_URL}/confirmar-email?token={token}"
+
+# -----------------------
+# Função para enviar e-mail de confirmação
+# -----------------------
+async def enviar_email_confirmacao(destinatario: str, link: str):
+    """
+    Envia e-mail de confirmação de cadastro
+    """
+    assunto = "Confirme seu e-mail"
+    corpo = f"""
+    Olá! 👋<br><br>
+    Obrigado por se cadastrar no RmtPark.<br>
+    Por favor, confirme seu e-mail clicando no link abaixo:<br><br>
+    <a href="{link}">Confirmar e-mail</a><br><br>
+    Se você não se cadastrou, apenas ignore este e-mail.
+    """
     message = MessageSchema(
-        subject="Confirme seu e-mail - RmtPark",
-        recipients=[email],
-        body=f'<h2>Bem-vindo!</h2><p>Confirme seu e-mail: <a href="{link}">Confirmar</a></p>',
-        subtype="html"
+        subject=assunto,
+        recipients=[destinatario],
+        body=corpo,
+        subtype=MessageType.html
     )
     fm = FastMail(conf)
     await fm.send_message(message)
 
-
-
-
-async def enviar_email_recuperacao(email: str, token: str):
+# -----------------------
+# Função para enviar e-mail de recuperação de senha
+# -----------------------
+async def enviar_email_recuperacao(destinatario: str, token: str):
     """
-    Envia e-mail de recuperação de senha para o usuário.
-    O link aponta para o front-end em produção.
+    Envia e-mail de recuperação de senha
     """
-    frontend_url = os.getenv("FRONTEND_URL", "https://rmtpark-tcc-u856.vercel.app")
-    link = f"{frontend_url}/redefinir-senha?token={token}"
-
+    link = f"{FRONT_URL}/redefinir-senha?token={token}"
+    assunto = "Recuperação de senha"
+    corpo = f"""
+    Olá! 👋<br><br>
+    Você solicitou a recuperação de senha no RmtPark.<br>
+    Clique no link abaixo para redefinir sua senha:<br><br>
+    <a href="{link}">Redefinir senha</a><br><br>
+    Se você não solicitou, apenas ignore este e-mail.
+    """
     message = MessageSchema(
-        subject="Recuperação de senha - RmtPark",
-        recipients=[email],
-        body=f"""
-        <h2>Recuperação de senha</h2>
-        <p>Recebemos uma solicitação para redefinir sua senha.</p>
-        <a href="{link}">👉 Redefinir senha</a>
-        <p>Se você não solicitou esta ação, ignore esta mensagem.</p>
-        """,
-        subtype="html"
+        subject=assunto,
+        recipients=[destinatario],
+        body=corpo,
+        subtype=MessageType.html
     )
-
     fm = FastMail(conf)
     await fm.send_message(message)
-
-
