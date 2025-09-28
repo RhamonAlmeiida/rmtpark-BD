@@ -119,6 +119,10 @@ def registrar_saida(
     )
     db.add(relatorio)
     db.commit()
-    db.refresh(vaga)
+    db.refresh(relatorio)
+
+    # Remove a vaga
+    db.delete(vaga)
+    db.commit()
 
     return vaga

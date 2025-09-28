@@ -6,7 +6,7 @@ from ..database.banco_dados import get_db
 from ..schemas.relatorio import RelatorioCreate, RelatorioResponse
 from ..database import modelos
 
-router = APIRouter(prefix="/relatorios", tags=["Relatórios"])
+router = APIRouter(prefix="", tags=["Relatórios"])
 
 @router.get("/", response_model=List[RelatorioResponse])
 def listar_relatorios(db: Session = Depends(get_db)):
