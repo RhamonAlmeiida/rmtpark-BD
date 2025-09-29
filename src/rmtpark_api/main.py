@@ -20,14 +20,14 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,   # usa a lista
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Routers
-app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(auth.router, prefix="/api/auth")
 app.include_router(empresa.router, prefix="/api/empresa", tags=["empresa"])
 app.include_router(vaga.router, prefix="/api/vagas", tags=["vagas"])
 app.include_router(relatorio.router, prefix="/api/relatorios")
