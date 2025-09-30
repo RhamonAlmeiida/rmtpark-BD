@@ -3,11 +3,11 @@ from typing import Optional
 
 
 class ConfigSchema(BaseModel):
-    valorHora: float = 10.0
-    valorDiaria: float = 0.0
-    valorMensalista: float = 0.0
+    valor_hora: float = 10.0
+    valor_diaria: float = 0.0
+    valor_mensalista: float = 0.0
     arredondamento: int = 15   # minutos
-    formaPagamento: Optional[str] = "Pix"
+    forma_pagamento: Optional[str] = "Pix"
 
     class Config:
         orm_mode = True
