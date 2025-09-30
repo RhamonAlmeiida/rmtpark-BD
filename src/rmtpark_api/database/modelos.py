@@ -46,6 +46,7 @@ class Vaga(Base):
     empresa = relationship("Empresa", back_populates="vagas")
 
 
+
 # ------------------ RELATÓRIO ------------------
 class Relatorio(Base):
     __tablename__ = "relatorios"
