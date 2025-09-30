@@ -1,10 +1,11 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, ForeignKey, Date
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+
 from .banco_dados import Base
-from sqlalchemy import Column, Integer, String, Date
 
 
+# ------------------ EMPRESA ------------------
 class Empresa(Base):
     __tablename__ = "empresas"
 
@@ -17,11 +18,13 @@ class Empresa(Base):
     email_confirmado = Column(Boolean, default=False)
     api_token = Column(String(255), unique=True, index=True, nullable=True)
 
+    # Relacionamentos
     vagas = relationship("Vaga", back_populates="empresa", cascade="all, delete-orphan")
     relatorios = relationship("Relatorio", back_populates="empresa", cascade="all, delete-orphan")
     configuracao = relationship("Configuracao", uselist=False, back_populates="empresa")
 
 
+# ------------------ VAGA ------------------
 class Vaga(Base):
     __tablename__ = "vagas"
 
@@ -29,20 +32,21 @@ class Vaga(Base):
     placa = Column(String(10), nullable=False, index=True)
     tipo = Column(String(20), nullable=False)
 
-    # hora de entrada automática
+    # entrada automática
     data_hora = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
-    # hora de saída preenchida na saída do veículo
+    # saída preenchida no checkout
     data_hora_saida = Column(DateTime(timezone=True), nullable=True)
 
     duracao = Column(String(50), nullable=True)
-    valor_pago = Column(Float, nullable=True)            # nome consistente
+    valor_pago = Column(Float, nullable=True)
     forma_pagamento = Column(String(20), nullable=True)
 
     empresa_id = Column(Integer, ForeignKey("empresas.id"), nullable=False)
     empresa = relationship("Empresa", back_populates="vagas")
 
 
+# ------------------ RELATÓRIO ------------------
 class Relatorio(Base):
     __tablename__ = "relatorios"
 
@@ -53,27 +57,30 @@ class Relatorio(Base):
     data_hora_saida = Column(DateTime, nullable=False)
     duracao = Column(String(50), nullable=False)
     valor_pago = Column(Float, nullable=False)
-    forma_pagamento = Column(String(20), nullable=True)   # permite null
+    forma_pagamento = Column(String(20), nullable=True)   # pode ser nulo
     status_pagamento = Column(String(20), nullable=False)
-    empresa_id = Column(Integer, ForeignKey("empresas.id"), nullable=False)
 
+    empresa_id = Column(Integer, ForeignKey("empresas.id"), nullable=False)
     empresa = relationship("Empresa", back_populates="relatorios")
 
 
+# ------------------ CONFIGURAÇÃO ------------------
 class Configuracao(Base):
     __tablename__ = "configuracoes"
 
     id = Column(Integer, primary_key=True, index=True)
     empresa_id = Column(Integer, ForeignKey("empresas.id"), unique=True)
+
     valor_hora = Column(Float, default=10.0)
     valor_diaria = Column(Float, default=0.0)
     valor_mensalista = Column(Float, default=0.0)
-    arredondamento = Column(Integer, default=15)  # em minutos
+    arredondamento = Column(Integer, default=15)  # minutos
     forma_pagamento = Column(String(20), default="Pix")
 
     empresa = relationship("Empresa", back_populates="configuracao")
 
 
+# ------------------ MENSALISTA ------------------
 class Mensalista(Base):
     __tablename__ = "mensalistas"
 
