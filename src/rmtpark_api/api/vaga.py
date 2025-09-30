@@ -83,6 +83,8 @@ class VagaSaidaSchema(BaseModel):
     valor: float
     formaPagamento: Optional[str] = None
 
+from datetime import datetime
+
 @router.put("/{vaga_id}/saida", response_model=vaga_schema.VagaResponse)
 def registrar_saida(
     vaga_id: int,
@@ -98,20 +100,29 @@ def registrar_saida(
     if not vaga:
         raise HTTPException(status_code=404, detail="Vaga não encontrada")
 
-    vaga.data_hora_saida = dados.saida
-    vaga.duracao = dados.duracao
-    vaga.valor_pago = dados.valor
-    vaga.forma_pagamento = dados.formaPagamento  # pode ser None
+    # Calcula a saída agora
+    saida = datetime.now()
+    duracao = saida - vaga.data_hora  # timedelta
+    duracao_str = str(duracao)  # ex: "1:32:05"
+
+    # Calcula o valor (exemplo: R$ 5,00 por hora)
+    horas = duracao.total_seconds() / 3600
+    valor = round(horas * 5, 2) if vaga.tipo == "Diarista" else 0.0
+
+    vaga.data_hora_saida = saida
+    vaga.duracao = duracao_str
+    vaga.valor_pago = valor
+    vaga.forma_pagamento = dados.formaPagamento
     vaga.status_pagamento = "Pago" if vaga.tipo == "Diarista" else "Mensalista"
 
     relatorio = Relatorio(
         placa=vaga.placa,
         tipo=vaga.tipo,
         data_hora_entrada=vaga.data_hora,
-        data_hora_saida=vaga.data_hora_saida,
-        duracao=vaga.duracao,
-        valor_pago=vaga.valor_pago,
-        forma_pagamento=vaga.forma_pagamento,  # pode ir null
+        data_hora_saida=saida,
+        duracao=duracao_str,
+        valor_pago=valor,
+        forma_pagamento=dados.formaPagamento,
         status_pagamento=vaga.status_pagamento,
         empresa_id=vaga.empresa_id
     )
