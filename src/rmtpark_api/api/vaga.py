@@ -11,7 +11,7 @@ from ..schemas.config import ConfigSchema
 from ..utils.security import get_current_empresa
 
 router = APIRouter(tags=["vagas"])
-router = APIRouter(prefix="/mensalistas", tags=["Mensalistas"])
+
 
 Vaga = modelos.Vaga
 Relatorio = modelos.Relatorio
