@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from src.rmtpark_api.database.banco_dados import get_db
-from src.rmtpark_api import models
+from src.rmtpark_api.database import modelos as models
+
 from src.rmtpark_api.schemas import mensalista as schemas
 
 router = APIRouter()
