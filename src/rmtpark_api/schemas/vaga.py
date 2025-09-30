@@ -50,7 +50,7 @@ class RelatorioResponse(BaseModel):
     dataHoraSaida: Optional[datetime]
     duracao: Optional[str]
     valorPago: float
-    formaPagamento: Optional[str]
+    formaPagamento: Optional[str] = None
     statusPagamento: str
 
     class Config:
