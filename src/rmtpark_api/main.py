@@ -13,9 +13,12 @@ app = FastAPI(title="RmtPark API")
 origins = [
     "http://localhost:4200",
     "http://127.0.0.1:4200",
+    "http://127.0.0.1:8000",   # 👈 add aqui
+    "http://localhost:8000",   # 👈 add também por segurança
     "https://rmtpark-tcc-u856.vercel.app",
-    "https://rmtpark-bd.onrender.com",
+    "https://rmtpark-api.onrender.com",
 ]
+
 
 
 app.add_middleware(
@@ -25,6 +28,8 @@ app.add_middleware(
         "http://127.0.0.1:4200",
         "https://rmtpark-tcc-u856.vercel.app",
         "https://rmtpark-bd.onrender.com",
+        "http://127.0.0.1:8000",
+        "http://localhost:8000",
     ],
     allow_credentials=True,
     allow_methods=["*"],
