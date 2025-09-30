@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.rmtpark_api.api import auth, empresa, vaga, relatorio
 from src.rmtpark_api.database.banco_dados import Base, engine
+from src.rmtpark_api.api import auth, empresa, vaga, relatorio, mensalista
 
 # Cria todas as tabelas
 Base.metadata.create_all(bind=engine)
@@ -41,7 +42,8 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api/auth")
 app.include_router(empresa.router, prefix="/api/empresa", tags=["empresa"])
 app.include_router(vaga.router, prefix="/api/vagas", tags=["vagas"])
-app.include_router(relatorio.router, prefix="/api/relatorios")
+app.include_router(relatorio.router, prefix="/api/relatorios", tags=["relatorios"])
+app.include_router(mensalista.router, prefix="/api/mensalistas", tags=["mensalistas"])
 
 @app.get("/")
 def home():

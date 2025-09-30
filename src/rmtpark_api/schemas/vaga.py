@@ -1,57 +1,61 @@
-from pydantic import BaseModel, Field
-from typing import Optional
+from pydantic import BaseModel
 from datetime import datetime
+from typing import Optional
 
-# ------------------- BASE -------------------
-class VagaBase(BaseModel):
+# ------------------- CRIAÇÃO -------------------
+class VagaCreate(BaseModel):
     placa: str
     tipo: str
-    data_hora: Optional[datetime] = Field(default=None, alias="data_hora")  # hora de entrada
+    data_hora: Optional[datetime] = None   # opcional (pode vir null)
 
     class Config:
-        from_attributes = True  # substitui orm_mode no Pydantic v2
-        validate_by_name = True
+        orm_mode = True
 
-# ------------------- CREATE -------------------
-class VagaCreate(VagaBase):
-    pass
-
-# ------------------- RESPONSE -------------------
-class VagaResponse(VagaBase):
-    id: int
-    empresa_id: int
-    data_hora_saida: Optional[datetime] = None
-    duracao: Optional[str] = None
-    valor: Optional[float] = None
-    forma_pagamento: Optional[str] = None
-
-    class Config:
-        from_attributes = True
-        validate_by_name = True
 
 # ------------------- SAÍDA -------------------
 class VagaSaidaSchema(BaseModel):
-    data_hora_saida: datetime
-    duracao: str
-    valor: float
-    forma_pagamento: Optional[str] = None
+    saida: Optional[datetime] = None  # pode ser enviado, mas o backend usa datetime.now()
+    duracao: Optional[str] = None
+    valor: Optional[float] = None
+    formaPagamento: Optional[str] = None
+
+
+# ------------------- RESPOSTA -------------------
+class VagaResponse(BaseModel):
+    id: int
+    placa: str
+    tipo: str
+    data_hora: datetime
+    data_hora_saida: Optional[datetime]
+    duracao: Optional[str]
+    valor_pago: Optional[float]
+    forma_pagamento: Optional[str]
+    empresa_id: int
 
     class Config:
-        from_attributes = True
-        validate_by_name = True
+        orm_mode = True
 
 
-
+# --- Schemas Relatorio ---
 class RelatorioResponse(BaseModel):
     id: int
     placa: str
     tipo: str
-    dataHoraEntrada: datetime
-    dataHoraSaida: Optional[datetime]
-    duracao: Optional[str]
-    valorPago: float
-    formaPagamento: Optional[str] = None
-    statusPagamento: str
+    data_hora_entrada: datetime
+    data_hora_saida: datetime
+    duracao: str
+    valor_pago: float
+    forma_pagamento: Optional[str] = None
+    status_pagamento: str
+    empresa_id: int
 
     class Config:
         orm_mode = True
+
+# --- Schemas Configuracoes ---
+class ConfigSchema(BaseModel):
+    valorHora: float
+    valorDiaria: float
+    valorMensalista: float
+    arredondamento: int
+    formaPagamento: Optional[str] = None
