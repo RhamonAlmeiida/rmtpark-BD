@@ -84,21 +84,22 @@ class VagaSaidaSchema(BaseModel):
     valor: float
     formaPagamento: str
 
-@router.put("/{vaga_id}/saida", response_model=vaga_schema.VagaResponse)
+@router.put("/{vaga_id}/saida", response_model=vaga_schema.RelatorioResponse)
 def registrar_saida(
     vaga_id: int,
-    dados: VagaSaidaSchema,
+    dados: vaga_schema.VagaSaidaSchema,
     db: Session = Depends(get_db),
     empresa_logada: modelos.Empresa = Depends(get_current_empresa)
 ):
-    vaga = db.query(Vaga).filter(
-        Vaga.id == vaga_id,
-        Vaga.empresa_id == empresa_logada.id
+    vaga = db.query(modelos.Vaga).filter(
+        modelos.Vaga.id == vaga_id,
+        modelos.Vaga.empresa_id == empresa_logada.id
     ).first()
+
     if not vaga:
         raise HTTPException(status_code=404, detail="Vaga não encontrada")
 
-    # Atualiza vaga com os dados enviados pelo front
+    # Atualiza com dados enviados
     vaga.data_hora_saida = dados.saida
     vaga.duracao = dados.duracao
     vaga.valor_pago = dados.valor
@@ -106,7 +107,7 @@ def registrar_saida(
     vaga.status_pagamento = "Pago"
 
     # Cria registro no relatório
-    relatorio = Relatorio(
+    relatorio = modelos.Relatorio(
         placa=vaga.placa,
         tipo=vaga.tipo,
         data_hora_entrada=vaga.data_hora,
