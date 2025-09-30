@@ -39,3 +39,19 @@ class VagaSaidaSchema(BaseModel):
     class Config:
         from_attributes = True
         validate_by_name = True
+
+
+
+class RelatorioResponse(BaseModel):
+    id: int
+    placa: str
+    tipo: str
+    dataHoraEntrada: datetime
+    dataHoraSaida: Optional[datetime]
+    duracao: Optional[str]
+    valorPago: float
+    formaPagamento: Optional[str]
+    statusPagamento: str
+
+    class Config:
+        orm_mode = True
