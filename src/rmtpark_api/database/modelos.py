@@ -50,7 +50,7 @@ class Relatorio(Base):
     data_hora_saida = Column(DateTime, nullable=False)
     duracao = Column(String(20), nullable=False)
     valor_pago = Column(Float, nullable=False)
-    forma_pagamento = Column(String(20), nullable=False)
+    forma_pagamento = Column(String(20), nullable=True)   # 👈 AGORA ACEITA NULL
     status_pagamento = Column(String(20), nullable=False)
     empresa_id = Column(Integer, ForeignKey("empresas.id"), nullable=False)
 
