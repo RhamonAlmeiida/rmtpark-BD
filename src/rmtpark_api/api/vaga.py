@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
-from datetime import datetime
-import pytz
+from typing import Optional
 from ..database import modelos
 from ..database.banco_dados import get_db
 from ..schemas import vaga as vaga_schema
@@ -82,48 +81,46 @@ class VagaSaidaSchema(BaseModel):
     saida: str
     duracao: str
     valor: float
-    formaPagamento: str
+    formaPagamento: Optional[str] = None
 
-@router.put("/{vaga_id}/saida", response_model=vaga_schema.RelatorioResponse)
+@router.put("/{vaga_id}/saida", response_model=vaga_schema.VagaResponse)
 def registrar_saida(
     vaga_id: int,
     dados: vaga_schema.VagaSaidaSchema,
     db: Session = Depends(get_db),
     empresa_logada: modelos.Empresa = Depends(get_current_empresa)
 ):
-    vaga = db.query(modelos.Vaga).filter(
-        modelos.Vaga.id == vaga_id,
-        modelos.Vaga.empresa_id == empresa_logada.id
+    vaga = db.query(Vaga).filter(
+        Vaga.id == vaga_id,
+        Vaga.empresa_id == empresa_logada.id
     ).first()
 
     if not vaga:
         raise HTTPException(status_code=404, detail="Vaga não encontrada")
 
-    # Atualiza com dados enviados
     vaga.data_hora_saida = dados.saida
     vaga.duracao = dados.duracao
     vaga.valor_pago = dados.valor
-    vaga.forma_pagamento = dados.formaPagamento
-    vaga.status_pagamento = "Pago"
+    vaga.forma_pagamento = dados.formaPagamento  # pode ser None
+    vaga.status_pagamento = "Pago" if vaga.tipo == "Diarista" else "Mensalista"
 
-    # Cria registro no relatório
-    relatorio = modelos.Relatorio(
+    relatorio = Relatorio(
         placa=vaga.placa,
         tipo=vaga.tipo,
         data_hora_entrada=vaga.data_hora,
         data_hora_saida=vaga.data_hora_saida,
         duracao=vaga.duracao,
         valor_pago=vaga.valor_pago,
-        forma_pagamento=vaga.forma_pagamento,
+        forma_pagamento=vaga.forma_pagamento,  # pode ir null
         status_pagamento=vaga.status_pagamento,
         empresa_id=vaga.empresa_id
     )
+
     db.add(relatorio)
     db.commit()
     db.refresh(relatorio)
 
-    # Remove a vaga
     db.delete(vaga)
     db.commit()
 
-    return vaga
+    return relatorio

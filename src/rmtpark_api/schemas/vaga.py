@@ -34,7 +34,7 @@ class VagaSaidaSchema(BaseModel):
     data_hora_saida: datetime
     duracao: str
     valor: float
-    forma_pagamento: str
+    forma_pagamento: Optional[str] = None
 
     class Config:
         from_attributes = True
