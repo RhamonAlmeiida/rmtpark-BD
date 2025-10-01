@@ -3,14 +3,16 @@ from sqlalchemy.orm import Session
 from ..database import banco_dados
 from ..database.modelos import Empresa
 from ..schemas.empresa import EmpresaCreate, EmpresaOut, hash_password
-from validate_docbr import CNPJ  # pip install validate-docbr
-
-router = APIRouter(prefix="/empresas", tags=["empresas"])
+from validate_docbr import CNPJ
+import logging
+router = APIRouter(tags=["empresas"])
 
 cnpj_validator = CNPJ()
 
-
+logger = logging.getLogger(__name__)
 from sqlalchemy.exc import IntegrityError
+
+import traceback
 
 @router.post("/", response_model=EmpresaOut)
 def criar_empresa(empresa: EmpresaCreate, db: Session = Depends(banco_dados.get_db)):
@@ -23,8 +25,8 @@ def criar_empresa(empresa: EmpresaCreate, db: Session = Depends(banco_dados.get_
         nova_empresa = Empresa(
             nome=empresa.nome,
             email=empresa.email,
-            telefone=empresa.telefone,
-            cnpj=empresa.cnpj,
+            telefone=''.join(filter(str.isdigit, empresa.telefone)),  # só números
+            cnpj=''.join(filter(str.isdigit, empresa.cnpj)),          # só números
             senha=hashed_senha,
             email_confirmado=False,
         )
@@ -39,3 +41,8 @@ def criar_empresa(empresa: EmpresaCreate, db: Session = Depends(banco_dados.get_
         db.rollback()
         raise HTTPException(status_code=400, detail="Email ou CNPJ já cadastrado")
 
+    except Exception as e:
+        db.rollback()
+        print("Erro ao criar empresa:", e)
+        print(traceback.format_exc())  # printa stacktrace completo no console
+        raise HTTPException(status_code=500, detail="Erro interno do servidor")
