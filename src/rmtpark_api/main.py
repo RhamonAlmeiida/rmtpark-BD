@@ -2,11 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.rmtpark_api.database.banco_dados import Base, engine
 from src.rmtpark_api.api import auth, empresa, vaga, relatorio, mensalista
+app = FastAPI(title="RmtPark API")
 
 # Cria todas as tabelas
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="RmtPark API")
 
 # CORS
 origins = [
