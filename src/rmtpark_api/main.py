@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.rmtpark_api.database.banco_dados import Base, engine
 from src.rmtpark_api.api import auth, empresa, vaga, relatorio, mensalista
+from src.rmtpark_api.api import teste_email
 app = FastAPI(title="RmtPark API")
 
 # Cria todas as tabelas
@@ -42,7 +43,7 @@ app.include_router(empresa.router, prefix="/api/empresa")
 app.include_router(vaga.router, prefix="/api/vagas", tags=["vagas"])
 app.include_router(relatorio.router, prefix="/api/relatorios", tags=["relatorios"])
 app.include_router(mensalista.router, prefix="/api/mensalistas", tags=["mensalistas"])
-
+app.include_router(teste_email.router, prefix="/api")
 @app.get("/")
 def home():
     return {"status": "API RmtPark funcionando 🚀"}
