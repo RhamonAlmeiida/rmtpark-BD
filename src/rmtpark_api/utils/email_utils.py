@@ -68,3 +68,7 @@ async def enviar_email_recuperacao(destinatario: str, token: str):
     )
     fm = FastMail(conf)
     await fm.send_message(message)
+
+def montar_link_confirmacao(token: str) -> str:
+    from src.rmtpark_api.config import FRONT_URL
+    return f"{FRONT_URL}/confirmar-email?token={token}"

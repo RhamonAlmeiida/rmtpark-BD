@@ -11,7 +11,7 @@ from ..database import banco_dados
 from ..database.modelos import Empresa
 from ..schemas.empresa import EmpresaCreate, EmpresaOut, hash_password, verify_password
 from ..utils.token_utils import create_confirmation_token, verify_confirmation_token
-from ..utils.email_utils import enviar_email_confirmacao, enviar_email_recuperacao, montar_link_confirmacao
+from ..utils.email_utils import enviar_email_confirmacao, enviar_email_recuperacao
 
 # -----------------------
 # Router
@@ -25,9 +25,6 @@ SECRET_KEY = os.getenv("SECRET_KEY", "supersecret")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 1 hora
 REFRESH_TOKEN_EXPIRE_DAYS = 7     # 7 dias
-
-# FRONT_URL deve ser o endereço do seu frontend
-FRONT_URL = os.getenv("FRONT_URL")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
@@ -78,12 +75,9 @@ async def cadastrar(empresa: EmpresaCreate, db: Session = Depends(banco_dados.ge
     db.commit()
     db.refresh(nova_empresa)
 
-    # Cria token de confirmação
+    # Cria token de confirmação e envia e-mail
     token = create_confirmation_token(nova_empresa.email)
-
-    # Monta link correto dependendo do ambiente
-    link = montar_link_confirmacao(token)
-    await enviar_email_confirmacao(nova_empresa.email, link=link)
+    await enviar_email_confirmacao(nova_empresa.email, token)
 
     return nova_empresa
 
@@ -180,8 +174,7 @@ async def recuperar_senha(dados: RecuperarSenhaRequest, db: Session = Depends(ba
         raise HTTPException(status_code=404, detail="E-mail não encontrado")
 
     token = create_confirmation_token(dados.email)
-    link = montar_link_confirmacao(token)  # mesmo esquema de link para recuperação
-    await enviar_email_recuperacao(dados.email, link=link)
+    await enviar_email_recuperacao(dados.email, token)
 
     return {"msg": "Link de recuperação enviado para seu e-mail"}
 
