@@ -1,10 +1,11 @@
-# src/rmtpark_api/utils/email_utils.py
+import os
 import httpx
 
 # -----------------------
 # Configurações diretas
 # -----------------------
-SENDGRID_API_KEY = "SUA_CHAVE_SENDGRID_AQUI"   # exemplo: "SG.xxxxx"
+SENDGRID_API_KEY = os.getenv("MAIL_PASSWORD")
+# exemplo: "SG.xxxxx"
 SENDGRID_FROM = "seuemail@dominio.com"
 FRONT_URL = "http://localhost:4200"  # ou a URL do seu front
 
