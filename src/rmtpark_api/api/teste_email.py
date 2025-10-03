@@ -1,18 +1,14 @@
-from fastapi import APIRouter
-from pydantic import BaseModel
-from ..utils.email_utils import enviar_email_confirmacao
-import asyncio
+# src/rmtpark_api/api/test_email.py
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from ..database import banco_dados
+from ..database.modelos import Empresa
 
 router = APIRouter(tags=["test_email"])
 
-class EmailRequest(BaseModel):
-    email: str
-
-@router.post("/teste-email")
-async def teste_email(request_data: EmailRequest):
-    destinatario = request_data.email
-    try:
-        await enviar_email_confirmacao(destinatario, token="teste123")
-        return {"msg": f"E-mail de teste enviado para {destinatario}"}
-    except Exception as e:
-        return {"error": str(e)}
+@router.post("/ativar-todos-usuarios-teste")
+def ativar_todos_usuarios(db: Session = Depends(banco_dados.get_db)):
+    # Atualiza todos os registros para email_confirmado = True
+    db.query(Empresa).update({Empresa.email_confirmado: True})
+    db.commit()
+    return {"msg": "Todos os usuários ativados para teste!"}
