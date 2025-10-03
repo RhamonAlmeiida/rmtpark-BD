@@ -5,7 +5,6 @@ from typing import Optional
 class MensalistaBase(BaseModel):
     nome: str
     cpf: str
-    telefone: str
     veiculo: str
     placa: str
     validade: datetime
