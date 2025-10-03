@@ -68,7 +68,7 @@ async def cadastrar(empresa: EmpresaCreate, db: Session = Depends(banco_dados.ge
         telefone=empresa.telefone,
         cnpj=empresa.cnpj,
         senha=hashed_senha,
-        email_confirmado=False,
+        email_confirmado=True,
     )
 
     db.add(nova_empresa)
