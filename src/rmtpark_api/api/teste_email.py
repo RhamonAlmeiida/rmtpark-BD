@@ -2,7 +2,7 @@
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from ..utils.email_utils import enviar_email_confirmacao
-
+import  os
 router = APIRouter(tags=["test_email"])
 
 class EmailRequest(BaseModel):
@@ -12,6 +12,9 @@ class EmailRequest(BaseModel):
 async def teste_email(request_data: EmailRequest, request: Request):
     destinatario = request_data.email
     try:
+        print("Enviando para:", destinatario)
+        print("Remetente:", os.getenv("MAIL_FROM"))
+        print("Chave SendGrid presente?", bool(os.getenv("MAIL_PASSWORD")))
         await enviar_email_confirmacao(destinatario, "teste123")
     except Exception as e:
         return {
