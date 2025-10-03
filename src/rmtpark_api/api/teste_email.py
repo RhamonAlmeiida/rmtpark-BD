@@ -1,4 +1,3 @@
-# src/rmtpark_api/api/test_email.py
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
 from ..utils.email_utils import enviar_email_confirmacao
