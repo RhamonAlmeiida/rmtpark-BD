@@ -6,32 +6,41 @@ import aiosmtplib
 # -----------------------
 # Configurações do e-mail
 # -----------------------
-MAIL_FROM = os.getenv("MAIL_FROM")  # ex: rmtpark.estacionamento@gmail.com
-MAIL_USERNAME = os.getenv("MAIL_USERNAME")  # mesmo que MAIL_FROM
+MAIL_FROM = os.getenv("MAIL_FROM", "rmtpark.estacionamento@gmail.com")
+MAIL_USERNAME = os.getenv("MAIL_USERNAME", MAIL_FROM)
 MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")  # senha de app do Gmail
 MAIL_SERVER = os.getenv("MAIL_SERVER", "smtp.gmail.com")
 MAIL_PORT = int(os.getenv("MAIL_PORT", 587))
 MAIL_STARTTLS = os.getenv("MAIL_STARTTLS", "True") == "True"
-FRONT_URL = os.getenv("FRONT_URL", "http://localhost:4200")
+FRONT_URL = os.getenv("FRONT_URL", "https://rmtpark-tcc-u856.vercel.app")
 
 # -----------------------
 # Função genérica de envio
 # -----------------------
 async def send_email(destinatario: str, assunto: str, html_content: str):
-    msg = EmailMessage()
-    msg["From"] = MAIL_FROM
-    msg["To"] = destinatario
-    msg["Subject"] = assunto
-    msg.set_content(html_content, subtype="html")
+    try:
+        msg = EmailMessage()
+        msg["From"] = MAIL_FROM
+        msg["To"] = destinatario
+        msg["Subject"] = assunto
+        msg.set_content(html_content, subtype="html")
 
-    await aiosmtplib.send(
-        msg,
-        hostname=MAIL_SERVER,
-        port=MAIL_PORT,
-        start_tls=MAIL_STARTTLS,
-        username=MAIL_USERNAME,
-        password=MAIL_PASSWORD
-    )
+        print(f"[INFO] Tentando enviar e-mail para: {destinatario}")
+        print(f"[INFO] Servidor SMTP: {MAIL_SERVER}:{MAIL_PORT}, STARTTLS={MAIL_STARTTLS}")
+
+        await aiosmtplib.send(
+            msg,
+            hostname=MAIL_SERVER,
+            port=MAIL_PORT,
+            start_tls=MAIL_STARTTLS,
+            username=MAIL_USERNAME,
+            password=MAIL_PASSWORD
+        )
+
+        print(f"[SUCCESS] E-mail enviado para {destinatario}!")
+    except Exception as e:
+        print(f"[ERROR] Falha ao enviar e-mail para {destinatario}: {e}")
+        raise e
 
 # -----------------------
 # E-mail de confirmação
