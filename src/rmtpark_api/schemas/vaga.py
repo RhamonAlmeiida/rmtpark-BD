@@ -23,7 +23,20 @@ class VagaSaidaSchema(BaseModel):
         allow_population_by_field_name = True
 
 
+class VagaSaidaResponse(BaseModel):
+    id: int
+    placa: str
+    tipo: str
+    data_hora_entrada: datetime
+    data_hora_saida: datetime
+    duracao: str
+    valor_pago: float
+    forma_pagamento: Optional[str]
+    status_pagamento: str
+    empresa_id: int
 
+    class Config:
+        orm_mode = True
 # ------------------- RESPOSTA -------------------
 class VagaResponse(BaseModel):
     id: int
