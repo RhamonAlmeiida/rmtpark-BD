@@ -1,39 +1,37 @@
+# src/rmtpark_api/utils/email_utils.py
 import os
-import httpx
+from email.message import EmailMessage
+import aiosmtplib
 
 # -----------------------
-# Configurações diretas
+# Configurações do e-mail
 # -----------------------
-SENDGRID_API_KEY = os.getenv("MAIL_PASSWORD")
-# exemplo: "SG.xxxxx"
-SENDGRID_FROM = "seuemail@dominio.com"
-FRONT_URL = "http://localhost:4200"  # ou a URL do seu front
+MAIL_FROM = os.getenv("MAIL_FROM")  # ex: rmtpark.estacionamento@gmail.com
+MAIL_USERNAME = os.getenv("MAIL_USERNAME")  # mesmo que MAIL_FROM
+MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")  # senha de app do Gmail
+MAIL_SERVER = os.getenv("MAIL_SERVER", "smtp.gmail.com")
+MAIL_PORT = int(os.getenv("MAIL_PORT", 587))
+MAIL_STARTTLS = os.getenv("MAIL_STARTTLS", "True") == "True"
+FRONT_URL = os.getenv("FRONT_URL", "http://localhost:4200")
 
 # -----------------------
-# Função auxiliar
+# Função genérica de envio
 # -----------------------
 async def send_email(destinatario: str, assunto: str, html_content: str):
-    url = "https://api.sendgrid.com/v3/mail/send"
-    headers = {
-        "Authorization": f"Bearer {SENDGRID_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    data = {
-        "personalizations": [{
-            "to": [{"email": destinatario}],
-            "subject": assunto
-        }],
-        "from": {"email": SENDGRID_FROM},
-        "content": [{
-            "type": "text/html",
-            "value": html_content
-        }]
-    }
+    msg = EmailMessage()
+    msg["From"] = MAIL_FROM
+    msg["To"] = destinatario
+    msg["Subject"] = assunto
+    msg.set_content(html_content, subtype="html")
 
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(url, headers=headers, json=data)
-        if resp.status_code >= 400:
-            raise Exception(f"Erro SendGrid: {resp.status_code} - {resp.text}")
+    await aiosmtplib.send(
+        msg,
+        hostname=MAIL_SERVER,
+        port=MAIL_PORT,
+        start_tls=MAIL_STARTTLS,
+        username=MAIL_USERNAME,
+        password=MAIL_PASSWORD
+    )
 
 # -----------------------
 # E-mail de confirmação
