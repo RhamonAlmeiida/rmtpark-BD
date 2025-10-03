@@ -183,3 +183,17 @@ def obter_configuracoes(
     return config
 
 
+# ------------------- BUSCAR VAGA -------------------
+@router.get("/{vaga_id}", response_model=vaga_schema.VagaResponse)
+def buscar_vaga(
+    vaga_id: int,
+    db: Session = Depends(get_db),
+    empresa_logada: modelos.Empresa = Depends(get_current_empresa)
+):
+    vaga = db.query(Vaga).filter(
+        Vaga.id == vaga_id,
+        Vaga.empresa_id == empresa_logada.id
+    ).first()
+    if not vaga:
+        raise HTTPException(status_code=404, detail="Vaga não encontrada")
+    return vaga
