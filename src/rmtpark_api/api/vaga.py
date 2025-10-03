@@ -136,10 +136,9 @@ def salvar_configuracoes(
     db: Session = Depends(get_db),
     empresa_logada: modelos.Empresa = Depends(get_current_empresa)
 ):
-    print("DEBUG [CONFIG_POST] Dados recebidos:", dados.dict())
+    """Cria ou atualiza as configurações da empresa"""
     config = db.query(Configuracao).filter_by(empresa_id=empresa_logada.id).first()
     if not config:
-        print("DEBUG [CONFIG_POST] Criando nova configuração")
         config = Configuracao(empresa_id=empresa_logada.id)
         db.add(config)
 
@@ -151,7 +150,6 @@ def salvar_configuracoes(
 
     db.commit()
     db.refresh(config)
-    print("DEBUG [CONFIG_POST] Config salva:", config.__dict__)
     return config
 
 
@@ -160,10 +158,8 @@ def obter_configuracoes(
     db: Session = Depends(get_db),
     empresa_logada: modelos.Empresa = Depends(get_current_empresa)
 ):
-    print("DEBUG [CONFIG_GET] Empresa:", empresa_logada.id)
+    """Obtém configurações da empresa logada"""
     config = db.query(Configuracao).filter_by(empresa_id=empresa_logada.id).first()
     if not config:
-        print("DEBUG [CONFIG_GET] Nenhuma configuração encontrada")
-        raise HTTPException(404, "Configurações não encontradas")
-    print("DEBUG [CONFIG_GET] Config retornada:", config.__dict__)
+        raise HTTPException(status_code=404, detail="Configurações não encontradas")
     return config
