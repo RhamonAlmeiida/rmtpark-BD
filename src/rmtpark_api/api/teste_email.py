@@ -1,4 +1,4 @@
-# src/rmtpark_api/api/test_email.py
+# src/rmtpark_api/api/teste_email.py
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from ..database import banco_dados

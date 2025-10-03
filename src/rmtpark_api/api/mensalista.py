@@ -15,6 +15,7 @@ def criar_mensalista(mensalista: schemas.MensalistaCreate, db: Session = Depends
     db.refresh(novo)
     return novo
 
+
 @router.get("/", response_model=list[schemas.Mensalista])
 def listar_mensalistas(db: Session = Depends(get_db)):
     return db.query(models.Mensalista).all()

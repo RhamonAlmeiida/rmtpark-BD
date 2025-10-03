@@ -1,18 +1,22 @@
-# src/rmtpark_api/schemas/mensalista.py
 from pydantic import BaseModel
+from datetime import datetime
+from typing import Optional
 
 class MensalistaBase(BaseModel):
     nome: str
     cpf: str
-    telefone: str | None = None
-    veiculo: str | None = None
-    placa: str | None = None
+    telefone: str
+    veiculo: str
+    placa: str
+    validade: datetime
+    status: str
+    cor: Optional[str] = None
 
 class MensalistaCreate(MensalistaBase):
-    pass
+    pass   # 👈 já herda tudo de MensalistaBase
 
 class Mensalista(MensalistaBase):
     id: int
 
     class Config:
-        from_attributes = True   # 👈 substitui orm_mode no Pydantic v2
+        from_attributes = True   # Pydantic v2

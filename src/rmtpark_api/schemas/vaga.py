@@ -14,10 +14,14 @@ class VagaCreate(BaseModel):
 
 # ------------------- SAÍDA -------------------
 class VagaSaidaSchema(BaseModel):
-    saida: Optional[datetime] = None  # pode ser enviado, mas o backend usa datetime.now()
+    saida: Optional[datetime] = None
     duracao: Optional[str] = None
     valor: Optional[float] = None
     formaPagamento: Optional[str] = None
+
+    class Config:
+        allow_population_by_field_name = True
+
 
 
 # ------------------- RESPOSTA -------------------
