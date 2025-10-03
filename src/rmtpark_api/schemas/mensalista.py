@@ -8,8 +8,9 @@ class MensalistaBase(BaseModel):
     veiculo: str
     placa: str
     validade: datetime
-    status: str
+    status: Optional[str] = "ativo"   # 👈 agora vira opcional com default
     cor: Optional[str] = None
+
 
 class MensalistaCreate(MensalistaBase):
     pass   # 👈 já herda tudo de MensalistaBase
