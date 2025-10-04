@@ -65,4 +65,3 @@ class Mensalista(Base):
     cpf = Column(String, nullable=True)
     validade = Column(Date, nullable=False)
     status = Column(String, nullable=False)
-

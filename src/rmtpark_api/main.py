@@ -28,7 +28,7 @@ app.add_middleware(
 # Rotas
 app.include_router(auth.router, prefix="/api/auth")
 app.include_router(empresa.router, prefix="/api/empresa")
-app.include_router(vaga.router, prefix="/api/vagas", tags=["vagas"])
+app.include_router(vaga.router, prefix="/api/vagas")
 app.include_router(relatorio.router, prefix="/api/relatorios", tags=["relatorios"])
 app.include_router(mensalista.router, prefix="/api/mensalistas", tags=["mensalistas"])
 app.include_router(teste_email.router, prefix="/api")

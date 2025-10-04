@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
+from pydantic import BaseModel, Field
 
 # ------------------- CRIAÇÃO -------------------
 class VagaCreate(BaseModel):
@@ -71,8 +72,13 @@ class RelatorioResponse(BaseModel):
 
 # --- Schemas Configuracoes ---
 class ConfigSchema(BaseModel):
-    valorHora: float
-    valorDiaria: float
-    valorMensalista: float
+    valor_hora: float = Field(..., alias="valorHora")
+    valor_diaria: float = Field(..., alias="valorDiaria")
+    valor_mensalista: float = Field(..., alias="valorMensalista")
     arredondamento: int
-    formaPagamento: Optional[str] = None
+    forma_pagamento: str = Field(..., alias="formaPagamento")
+
+    model_config = {
+        "from_attributes": True,     # antigo orm_mode
+        "validate_by_name": True     # antigo allow_population_by_field_name
+    }

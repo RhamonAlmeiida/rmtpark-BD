@@ -74,6 +74,8 @@ instance/
 env/
 venv/
 ENV/
+# .gitignore
+src/.env
 
 # macOS
 .DS_Store
