@@ -10,7 +10,7 @@ from ..schemas import vaga as vaga_schema
 from ..schemas.config import ConfigSchema
 from ..utils.security import get_current_empresa
 
-router = APIRouter(prefix="/vagas", tags=["vagas"])
+router = APIRouter(tags=["vagas"])
 
 Vaga = modelos.Vaga
 Relatorio = modelos.Relatorio
