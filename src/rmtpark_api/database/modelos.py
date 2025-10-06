@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Float, ForeignKey, DateTime, Date
+from sqlalchemy import Column, Integer, String, Boolean, Float, ForeignKey, DateTime, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from .banco_dados import Base
@@ -59,15 +59,18 @@ class Configuracao(Base):
 
 class Mensalista(Base):
     __tablename__ = "mensalistas"
+    __table_args__ = (
+        UniqueConstraint('placa', 'empresa_id', name='mensalistas_placa_empresa_unique'),
+    )
+
     id = Column(Integer, primary_key=True, index=True)
     nome = Column(String, nullable=False)
-    placa = Column(String, unique=True, nullable=False)
+    placa = Column(String, nullable=False)
     veiculo = Column(String, nullable=False)
-    cor = Column(String, nullable=True)
-    cpf = Column(String, nullable=True)
-    validade = Column(Date, nullable=False)
-    status = Column(String, nullable=False)
-
-
+    cor = Column(String, nullable=False)
+    cpf = Column(String, nullable=False)
+    validade = Column(DateTime, nullable=False)
+    status = Column(String, default="ativo")
     empresa_id = Column(Integer, ForeignKey("empresas.id"))
+
     empresa = relationship("Empresa", back_populates="mensalistas")
