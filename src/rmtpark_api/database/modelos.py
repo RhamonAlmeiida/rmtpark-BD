@@ -16,6 +16,8 @@ class Empresa(Base):
     vagas = relationship("Vaga", back_populates="empresa", cascade="all, delete-orphan")
     relatorios = relationship("Relatorio", back_populates="empresa", cascade="all, delete-orphan")
     configuracao = relationship("Configuracao", uselist=False, back_populates="empresa")
+    mensalistas = relationship("Mensalista", back_populates="empresa")
+
 
 class Vaga(Base):
     __tablename__ = "vagas"
@@ -65,3 +67,7 @@ class Mensalista(Base):
     cpf = Column(String, nullable=True)
     validade = Column(Date, nullable=False)
     status = Column(String, nullable=False)
+
+
+    empresa_id = Column(Integer, ForeignKey("empresas.id"))
+    empresa = relationship("Empresa", back_populates="mensalistas")

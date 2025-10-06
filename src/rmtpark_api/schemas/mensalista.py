@@ -17,6 +17,7 @@ class MensalistaCreate(MensalistaBase):
 
 class Mensalista(MensalistaBase):
     id: int
+    empresa_id: int
 
     class Config:
         from_attributes = True   # Pydantic v2
