@@ -1,8 +1,8 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.rmtpark_api.database.banco_dados import Base, engine
 from src.rmtpark_api.api import auth, empresa, vaga, relatorio, mensalista, teste_email
-import os
 
 app = FastAPI(title="RmtPark API")
 
@@ -37,8 +37,9 @@ app.include_router(teste_email.router, prefix="/api")
 def home():
     return {"status": "API RmtPark funcionando 🚀"}
 
-# Executa apenas se rodar localmente
+
+# Execução local
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))  # Render usa a variável PORT
     import uvicorn
+    port = int(os.environ.get("PORT", 8000))
     uvicorn.run("src.rmtpark_api.main:app", host="0.0.0.0", port=port)
