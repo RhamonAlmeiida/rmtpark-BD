@@ -65,10 +65,14 @@ async def cadastrar(empresa: EmpresaCreate, db: Session = Depends(banco_dados.ge
     nova_empresa = Empresa(
         nome=empresa.nome,
         email=empresa.email,
-        telefone=empresa.telefone,
-        cnpj=empresa.cnpj,
+        telefone=''.join(filter(str.isdigit, empresa.telefone)),
+        cnpj=''.join(filter(str.isdigit, empresa.cnpj)),
         senha=hashed_senha,
-        email_confirmado=True,
+        email_confirmado=False,
+        plano_titulo=empresa.plano.titulo,
+        plano_preco=empresa.plano.preco,
+        plano_recursos=empresa.plano.recursos,
+        plano_destaque=empresa.plano.destaque
     )
 
     db.add(nova_empresa)
@@ -79,7 +83,7 @@ async def cadastrar(empresa: EmpresaCreate, db: Session = Depends(banco_dados.ge
     token = create_confirmation_token(nova_empresa.email)
     await enviar_email_confirmacao(nova_empresa.email, token)
 
-    return nova_empresa
+    return EmpresaOut.model_validate(nova_empresa)
 
 # -----------------------
 # Confirmar email
@@ -127,8 +131,10 @@ def create_tokens(email: str):
     return access_token, refresh_token
 
 @router.post("/login", response_model=TokenResponse)
-def login(form_data: OAuth2PasswordRequestForm = Depends(),
-          db: Session = Depends(banco_dados.get_db)):
+def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(banco_dados.get_db)
+):
     empresa = db.query(Empresa).filter(Empresa.email == form_data.username).first()
     if not empresa or not verify_password(form_data.password, empresa.senha):
         raise HTTPException(status_code=401, detail="Credenciais inválidas")
