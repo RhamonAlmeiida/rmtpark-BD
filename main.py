@@ -5,6 +5,8 @@ from src.rmtpark_api.database.banco_dados import Base, engine
 from src.rmtpark_api.api import auth, empresa, vaga, relatorio, mensalista, teste_email
 from src.rmtpark_api.api import admin_routes
 
+Base.metadata.create_all(bind=engine)
+
 app = FastAPI(title="RmtPark API" ,version="1.0.0")
 
 # Cria todas as tabelas no banco
