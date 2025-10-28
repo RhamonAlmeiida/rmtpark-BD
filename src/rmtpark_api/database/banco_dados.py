@@ -1,19 +1,28 @@
+# database.py
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from dotenv import load_dotenv
-import os
 
-load_dotenv()  # Carrega .env automaticamente
+# Carrega variáveis do .env
+load_dotenv()
 
-# Pega do .env ou usa fallback SQLite
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./rmtpark.db")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = os.getenv("DB_PORT", 5432)
+DB_NAME = os.getenv("DB_NAME")
+DB_SSL_MODE = os.getenv("DB_SSL_MODE", "disable")
 
-engine = create_engine(DATABASE_URL, echo=True, connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {})
+SQLALCHEMY_DATABASE_URL = (
+    f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?sslmode={DB_SSL_MODE}"
+)
 
+engine = create_engine(SQLALCHEMY_DATABASE_URL, echo=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# Função para gerar sessão de banco
+# Dependência para usar nas rotas do FastAPI
 def get_db():
     db = SessionLocal()
     try:

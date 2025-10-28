@@ -2,10 +2,10 @@
 from sqlalchemy import (
     Column, Integer, String, Boolean, ARRAY, Float, ForeignKey, DateTime, JSON, UniqueConstraint
 )
-from sqlalchemy.orm import relationship, declarative_base
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
-Base = declarative_base()
+from src.rmtpark_api.database.banco_dados import Base
 
 class Empresa(Base):
     __tablename__ = "empresas"

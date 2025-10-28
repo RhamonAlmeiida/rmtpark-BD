@@ -1,11 +1,11 @@
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from src.rmtpark_api.database.banco_dados import Base, engine
 from src.rmtpark_api.api import auth, empresa, vaga, relatorio, mensalista, teste_email
 from src.rmtpark_api.api import admin_routes
+from src.rmtpark_api.database import modelos
+from src.rmtpark_api.database.banco_dados import Base, engine
 
-Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="RmtPark API" ,version="1.0.0")
 
@@ -48,5 +48,5 @@ def home():
 # Execução local
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port)
+    port = int(os.environ.get("PORT", 8001))
+    uvicorn.run("main:app", host="127.0.0.1", port=port)
