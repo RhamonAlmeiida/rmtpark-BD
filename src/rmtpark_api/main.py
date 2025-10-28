@@ -3,11 +3,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.rmtpark_api.database.banco_dados import Base, engine
 from src.rmtpark_api.api import auth, empresa, vaga, relatorio, mensalista, teste_email
+from src.rmtpark_api.api import admin_routes
 
-app = FastAPI(title="RmtPark API")
+app = FastAPI(title="RmtPark API" ,version="1.0.0")
 
 # Cria todas as tabelas no banco
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print(f"Erro ao criar tabelas no banco : {e}")
 
 # CORS
 origins = [
@@ -32,6 +36,7 @@ app.include_router(vaga.router, prefix="/api/vagas")
 app.include_router(relatorio.router, prefix="/api/relatorios", tags=["relatorios"])
 app.include_router(mensalista.router, prefix="/api/mensalistas", tags=["mensalistas"])
 app.include_router(teste_email.router, prefix="/api")
+app.include_router(admin_routes.router, prefix="/api/admin")
 
 @app.get("/")
 def home():

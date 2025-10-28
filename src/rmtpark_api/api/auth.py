@@ -1,4 +1,3 @@
-# src/rmtpark_api/api/auth.py
 import os
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException
@@ -6,7 +5,7 @@ from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from jose import jwt, JWTError
 from pydantic import BaseModel
-
+from types import SimpleNamespace
 from ..database import banco_dados
 from ..database.modelos import Empresa
 from ..schemas.empresa import EmpresaCreate, EmpresaOut, hash_password, verify_password
@@ -28,13 +27,25 @@ REFRESH_TOKEN_EXPIRE_DAYS = 7     # 7 dias
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
+
 # -----------------------
+# ADMIN MASTER FIXO
+# -----------------------
+ADMIN_EMAIL = "admin@rmtpark.com"
+ADMIN_PASSWORD = "admin@123"  # senha fixa — mantenha em ambiente seguro
+ADMIN_NAME = "Administrador Master"
+is_admin = ADMIN_EMAIL
+
+
 # Função para pegar empresa logada
-# -----------------------
+
 def get_current_empresa(
     db: Session = Depends(banco_dados.get_db),
     token: str = Depends(oauth2_scheme)
-) -> Empresa:
+) -> SimpleNamespace:
+    """
+    Retorna a empresa autenticada ou admin.
+    """
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
@@ -43,10 +54,14 @@ def get_current_empresa(
     except JWTError:
         raise HTTPException(status_code=401, detail="Token inválido ou expirado")
 
+    if email == ADMIN_EMAIL:
+        return SimpleNamespace(email=ADMIN_EMAIL, nome=ADMIN_NAME, is_admin=True)
+
     empresa = db.query(Empresa).filter(Empresa.email == email).first()
     if not empresa:
         raise HTTPException(status_code=401, detail="Empresa não encontrada")
 
+    setattr(empresa, "is_admin", False)
     return empresa
 
 # -----------------------
@@ -110,6 +125,7 @@ class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+    is_admin: bool = False
 
 def create_tokens(email: str):
     now = datetime.utcnow()
@@ -135,6 +151,18 @@ def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(banco_dados.get_db)
 ):
+    #login admin
+    if  form_data.username == ADMIN_EMAIL and form_data.password == ADMIN_PASSWORD:
+        access_token, refresh_token = create_tokens(ADMIN_EMAIL)
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer",
+            "is_admin": True
+        }
+
+    #login empresa
+
     empresa = db.query(Empresa).filter(Empresa.email == form_data.username).first()
     if not empresa or not verify_password(form_data.password, empresa.senha):
         raise HTTPException(status_code=401, detail="Credenciais inválidas")
@@ -146,7 +174,11 @@ def login(
         )
 
     access_token, refresh_token = create_tokens(empresa.email)
-    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
+    return {"access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer",
+            "is_admin": False
+    }
 
 # -----------------------
 # Refresh token
@@ -165,11 +197,17 @@ def refresh_token(data: RefreshTokenRequest):
         raise HTTPException(status_code=401, detail="Token inválido ou expirado")
 
     access_token, refresh_token = create_tokens(email)
-    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
+    is_admin = email == ADMIN_EMAIL
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "is_admin": is_admin
+    }
 
-# -----------------------
+
 # Recuperar senha
-# -----------------------
+
 class RecuperarSenhaRequest(BaseModel):
     email: str
 
@@ -184,9 +222,6 @@ async def recuperar_senha(dados: RecuperarSenhaRequest, db: Session = Depends(ba
 
     return {"msg": "Link de recuperação enviado para seu e-mail"}
 
-# -----------------------
-# Redefinir senha
-# -----------------------
 class RedefinirSenhaRequest(BaseModel):
     token: str
     nova_senha: str

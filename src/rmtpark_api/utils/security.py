@@ -1,31 +1,31 @@
+from types import SimpleNamespace
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
 from jose import jwt, JWTError
+from sqlalchemy.orm import Session
+from ..database.modelos import Empresa
+from ..database import banco_dados
 import os
 
-from ..database.banco_dados import get_db
-from ..database.modelos import Empresa
-
-# -----------------------------
-# Configurações do JWT
-# -----------------------------
-SECRET_KEY = os.getenv("SECRET_KEY", "supersecret")  # Recomenda usar .env
+SECRET_KEY = os.getenv("SECRET_KEY", "supersecret")
 ALGORITHM = "HS256"
 
-# OAuth2 para receber token via Header: Authorization: Bearer <token>
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
+ADMIN_EMAIL = "admin@rmtpark.com"
+ADMIN_NAME = "Administrador Master"
+ADMIN_PASSWORD = "admin@123"
 
-def get_current_empresa(
-        db: Session = Depends(get_db),
-        token: str = Depends(oauth2_scheme)
-) -> Empresa:
+def get_current_empresa(db: Session = Depends(banco_dados.get_db), token: str = Depends(oauth2_scheme)):
     """
-    Retorna a empresa autenticada com base no token JWT.
+    Aceita tanto o token JWT quanto um token simples 'admin-local-token' para admin.
     """
+    # Token local fixo
+    if token == "admin-local-token":
+        return SimpleNamespace(email=ADMIN_EMAIL, nome=ADMIN_NAME, is_admin=True)
+
+    # JWT normal
     try:
-        # decodifica o token
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
         if not email:
@@ -33,9 +33,21 @@ def get_current_empresa(
     except JWTError:
         raise HTTPException(status_code=401, detail="Token inválido ou expirado")
 
-    # busca empresa no banco
+    if email == ADMIN_EMAIL:
+        return SimpleNamespace(email=ADMIN_EMAIL, nome=ADMIN_NAME, is_admin=True)
+
     empresa = db.query(Empresa).filter(Empresa.email == email).first()
     if not empresa:
         raise HTTPException(status_code=401, detail="Empresa não encontrada")
 
+    setattr(empresa, "is_admin", False)
+    return empresa
+
+# ---------------- Função require_admin ----------------
+def require_admin(empresa=Depends(get_current_empresa)):
+    """
+    Garante que apenas admin possa acessar a rota.
+    """
+    if not getattr(empresa, "is_admin", False):
+        raise HTTPException(status_code=403, detail="Acesso restrito ao admin")
     return empresa

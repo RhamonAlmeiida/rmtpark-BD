@@ -20,6 +20,7 @@ class VagaSaidaSchema(BaseModel):
     valor: Optional[float] = None
     formaPagamento: Optional[str] = None
 
+
     class Config:
         allow_population_by_field_name = True
 

@@ -28,6 +28,8 @@ class Empresa(Base):
     pagamento_id = Column(String, nullable=True)
     pagamento_status = Column(String, nullable=True)
     pagamento_link = Column(String, nullable=True)
+    data_expiracao = Column(DateTime, nullable=True)
+
 
     # -------------------------------
     # Relacionamentos
