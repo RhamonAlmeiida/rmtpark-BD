@@ -21,6 +21,9 @@ ASAAS_API_KEY = os.getenv("ASAAS_API_KEY")
 if not ASAAS_API_KEY:
     raise ValueError("Variável de ambiente ASAAS_API_KEY não encontrada")
 
+if not ASAAS_API_KEY.startswith("$"):
+    ASAAS_API_KEY = "$" + ASAAS_API_KEY
+
 ASAAS_API_URL = "https://sandbox.asaas.com/api/v3/"
 
 HEADERS = {

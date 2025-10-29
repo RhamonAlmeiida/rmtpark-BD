@@ -8,6 +8,9 @@ from datetime import datetime, timedelta
 ASAAS_API_KEY = os.getenv("ASAAS_API_KEY")  # pega do .env
 ASAAS_API_URL = "https://sandbox.asaas.com/api/v3/"
 
+if not ASAAS_API_KEY.startswith("$"):
+    ASAAS_API_KEY = "$" + ASAAS_API_KEY
+
 HEADERS = {
     "access_token": ASAAS_API_KEY,
     "Content-Type": "application/json"
