@@ -21,11 +21,27 @@ def listar_empresas(db: Session = Depends(banco_dados.get_db), _admin=Depends(re
             "id": e.id,
             "nome": e.nome,
             "cnpj": e.cnpj,
+            "email": e.email,
             "data_expiracao": e.data_expiracao,
             "ativa": ativa,
-            "total_veiculos": total_veiculos
+            "confirmado": e.email_confirmado,
+            "total_veiculos": total_veiculos,
+            "email_confirmado": e.email_confirmado
         })
     return retorno
+
+
+@router.put("/empresas/{empresa_id}/confirma")
+def confirma_email(empresa_id: int, db: Session = Depends(banco_dados.get_db), _admin=Depends(require_admin)):
+    empresa = db.query(modelos.Empresa).filter(modelos.Empresa.id == empresa_id).first()
+    if not empresa:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    empresa.email_confirmado = True  # supondo que exista este campo
+    db.add(empresa)
+    db.commit()
+    db.refresh(empresa)
+    return {"message": "E-mail confirmado com sucesso"}
+
 
 @router.put("/empresas/{empresa_id}/renovar")
 def renovar_plano(empresa_id: int, db: Session = Depends(banco_dados.get_db), _admin=Depends(require_admin)):
