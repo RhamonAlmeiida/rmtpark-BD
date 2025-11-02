@@ -9,25 +9,39 @@ from ..utils.security import require_admin
 
 router = APIRouter(tags=["admin"])
 
+limites_por_plano = {
+    "Basico": 50,
+    "Profissional": 150,
+    "Empresarial": "Ilimitado"
+}
+
 @router.get("/empresas")
 def listar_empresas(db: Session = Depends(banco_dados.get_db), _admin=Depends(require_admin)):
     empresas = db.query(modelos.Empresa).all()
     retorno = []
     now = datetime.utcnow()
+
     for e in empresas:
         total_veiculos = db.query(modelos.Vaga).filter(modelos.Vaga.empresa_id == e.id).count()
         ativa = bool(e.data_expiracao and e.data_expiracao > now)
+
+        plano_titulo = e.plano_titulo
+        limite_vagas = limites_por_plano.get(plano_titulo, 0)  # pega o limite baseado no título do plano
+
         retorno.append({
             "id": e.id,
             "nome": e.nome,
             "cnpj": e.cnpj,
             "email": e.email,
+            "plano": {"titulo": plano_titulo},
+            "limite_vagas": limite_vagas,
             "data_expiracao": e.data_expiracao,
             "ativa": ativa,
             "confirmado": e.email_confirmado,
             "total_veiculos": total_veiculos,
             "email_confirmado": e.email_confirmado
         })
+
     return retorno
 
 
