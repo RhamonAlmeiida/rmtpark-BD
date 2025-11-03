@@ -37,43 +37,38 @@ def criar_vaga(
     db: Session = Depends(get_db),
     empresa_logada: modelos.Empresa = Depends(get_current_empresa)
 ):
-    # --- Verifica limite de vagas ativas conforme o plano ---
-    plano = empresa_logada.plano_titulo.lower()
+    plano = (empresa_logada.plano_titulo or "").lower()
     limite = None
 
-    if "basic" in plano:
+    if "básico" in plano or "basico" in plano or "basic" in plano:
         limite = 50
     elif "profissional" in plano:
         limite = 150
-    elif "premium" in plano:
-        limite = None  # ilimitado
+    elif "premium" in plano or "empresarial" in plano:
+        limite = None
 
-    # Conta quantas vagas estão ativas (sem saída)
     vagas_ativas = db.query(Vaga).filter(
         Vaga.empresa_id == empresa_logada.id,
         Vaga.data_hora_saida.is_(None)
     ).count()
 
-    # Se houver limite e ele for atingido, bloqueia nova criação
     if limite is not None and vagas_ativas >= limite:
         raise HTTPException(
             status_code=403,
             detail=f"Limite de {limite} vagas ativas atingido para o plano {empresa_logada.plano_titulo}."
         )
 
-    data_hora = vaga.data_hora or datetime.now()
     nova_vaga = Vaga(
         placa=vaga.placa.upper(),
         tipo=vaga.tipo,
-        data_hora=data_hora,
+        data_hora=vaga.data_hora or datetime.now(),
         empresa_id=empresa_logada.id
     )
+
     db.add(nova_vaga)
     db.commit()
     db.refresh(nova_vaga)
     return nova_vaga
-
-
 # ------------------- REGISTRAR SAÍDA -------------------
 @router.put("/{vaga_id}/saida")
 def registrar_saida(
