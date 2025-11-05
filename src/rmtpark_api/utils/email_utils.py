@@ -4,10 +4,9 @@ import aiosmtplib
 
 # Variáveis de ambiente
 MAIL_FROM = os.getenv("MAIL_FROM")
-FRONT_URL = os.getenv("FRONT_URL", "https://rmtpark-tcc-u856.vercel.app")
+FRONT_URL = os.getenv("FRONT_URL", "https://api.rmtpark.com")
 
-# Usando relay do Render
-SMTP_HOST = os.getenv("SMTP_HOST", "smtp.render.com")
+SMTP_HOST = os.getenv("SMTP_HOST")
 SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
 SMTP_USERNAME = os.getenv("SMTP_USERNAME")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
