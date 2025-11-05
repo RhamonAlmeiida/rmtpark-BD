@@ -12,9 +12,10 @@ ALGORITHM = "HS256"
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
-ADMIN_EMAIL = "admin@rmtpark.com"
-ADMIN_NAME = "Administrador Master"
-ADMIN_PASSWORD = "admin@123"
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
+ADMIN_NAME = os.getenv("ADMIN_NAME")
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 def get_current_empresa(db: Session = Depends(banco_dados.get_db), token: str = Depends(oauth2_scheme)):
     """

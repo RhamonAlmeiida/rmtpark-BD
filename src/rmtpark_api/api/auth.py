@@ -23,9 +23,10 @@ REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
-ADMIN_EMAIL = "admin@rmtpark.com"
-ADMIN_PASSWORD = "admin@123"
-ADMIN_NAME = "Administrador Master"
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
+ADMIN_NAME = os.getenv("ADMIN_NAME")
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 def criar_token(dados: dict):
     to_encode = dados.copy()
