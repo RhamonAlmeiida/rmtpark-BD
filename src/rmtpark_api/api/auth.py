@@ -1,43 +1,76 @@
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from jose import jwt, JWTError
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from types import SimpleNamespace
 from ..database import banco_dados
 from ..database.modelos import Empresa
-from ..schemas.empresa import EmpresaCreate, EmpresaOut, hash_password, verify_password
-from ..utils.timezone_utils import agora_sp
+from ..schemas.empresa import hash_password, verify_password
 from ..utils.token_utils import create_confirmation_token, verify_confirmation_token
-from ..utils.email_utils import  enviar_email_recuperacao
-from datetime import datetime, timedelta, timezone
+from ..utils.email_utils import enviar_email_recuperacao
+from ..utils.timezone_utils import agora_sp
+from passlib.context import CryptContext
 
 router = APIRouter(tags=["auth"])
 
+# Configurações de JWT
 SECRET_KEY = os.getenv("SECRET_KEY", "supersecret")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 
+# OAuth2
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
+# Admin
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 ADMIN_NAME = os.getenv("ADMIN_NAME")
-SECRET_KEY = os.getenv("SECRET_KEY")
-from pydantic import BaseModel
+
+# Hash de senha
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
+
+
+# ------------------------------
+# MODELOS DE REQUEST/RESPONSE
+# ------------------------------
+class TokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    is_admin: bool = False
 
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
+class RecuperarSenhaRequest(BaseModel):
+    email: EmailStr
 
-def criar_token(dados: dict):
-    to_encode = dados.copy()
-    expira = agora_sp() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expira})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+class RedefinirSenhaRequest(BaseModel):
+    token: str
+    nova_senha: str
+
+
+# ------------------------------
+# FUNÇÕES AUXILIARES
+# ------------------------------
+def create_tokens(email: str):
+    now = datetime.now(timezone.utc)
+    access_token = jwt.encode(
+        {"sub": email, "exp": now + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)},
+        SECRET_KEY,
+        algorithm=ALGORITHM
+    )
+    refresh_token = jwt.encode(
+        {"sub": email, "exp": now + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS), "type": "refresh"},
+        SECRET_KEY,
+        algorithm=ALGORITHM
+    )
+    return access_token, refresh_token
+
 
 def get_current_empresa(
     db: Session = Depends(banco_dados.get_db),
@@ -61,51 +94,45 @@ def get_current_empresa(
     setattr(empresa, "is_admin", False)
     return empresa
 
-class TokenResponse(BaseModel):
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
-    is_admin: bool = False
 
-def create_tokens(email: str):
-    now = datetime.now(timezone.utc)
-    access_token = jwt.encode(
-        {"sub": email, "exp": now + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)},
-        SECRET_KEY,
-        algorithm=ALGORITHM
-    )
-    refresh_token = jwt.encode(
-        {"sub": email, "exp": now + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS), "type": "refresh"},
-        SECRET_KEY,
-        algorithm=ALGORITHM
-    )
-    return access_token, refresh_token
-
+# ------------------------------
+# ENDPOINTS
+# ------------------------------
 
 @router.post("/login", response_model=TokenResponse)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(banco_dados.get_db)):
-    # Busca empresa pelo e-mail
+
+    # LOGIN ADMIN
+    if form_data.username == ADMIN_EMAIL:
+        if form_data.password != ADMIN_PASSWORD:
+            raise HTTPException(status_code=401, detail="Credenciais inválidas")
+        access_token, refresh_token = create_tokens(ADMIN_EMAIL)
+        return TokenResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            token_type="bearer",
+            is_admin=True
+        )
+
+    # LOGIN EMPRESA
     empresa = db.query(Empresa).filter(Empresa.email == form_data.username).first()
     if not empresa:
         raise HTTPException(status_code=401, detail="Credenciais inválidas")
 
-    # Verifica se o e-mail foi confirmado
     if not empresa.email_confirmado:
         raise HTTPException(status_code=403, detail="E-mail não confirmado. Confirme seu e-mail antes de fazer login.")
 
-    # Verifica a senha
+    # VERIFICA SENHA
     if not verify_password(form_data.password, empresa.senha):
         raise HTTPException(status_code=401, detail="Credenciais inválidas")
 
-    # Gera tokens
     access_token, refresh_token = create_tokens(empresa.email)
-    return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "bearer",
-        "is_admin": False
-    }
-
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+        is_admin=False
+    )
 
 
 @router.post("/refresh-token", response_model=TokenResponse)
@@ -119,7 +146,13 @@ def refresh_token(data: RefreshTokenRequest):
         raise HTTPException(status_code=401, detail="Token inválido ou expirado")
 
     access_token, refresh_token = create_tokens(email)
-    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer", "is_admin": email == ADMIN_EMAIL}
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+        is_admin=email == ADMIN_EMAIL
+    )
+
 
 @router.get("/confirmar-email")
 def confirmar_email(token: str, db: Session = Depends(banco_dados.get_db)):
@@ -135,8 +168,6 @@ def confirmar_email(token: str, db: Session = Depends(banco_dados.get_db)):
     db.commit()
     return {"msg": "E-mail confirmado com sucesso! Agora você pode fazer login."}
 
-class RecuperarSenhaRequest(BaseModel):
-    email: str
 
 @router.post("/recuperar-senha")
 async def recuperar_senha(dados: RecuperarSenhaRequest, db: Session = Depends(banco_dados.get_db)):
@@ -148,9 +179,6 @@ async def recuperar_senha(dados: RecuperarSenhaRequest, db: Session = Depends(ba
     await enviar_email_recuperacao(dados.email, token)
     return {"msg": "Link de recuperação enviado para seu e-mail"}
 
-class RedefinirSenhaRequest(BaseModel):
-    token: str
-    nova_senha: str
 
 @router.post("/redefinir-senha")
 def redefinir_senha(dados: RedefinirSenhaRequest, db: Session = Depends(banco_dados.get_db)):
