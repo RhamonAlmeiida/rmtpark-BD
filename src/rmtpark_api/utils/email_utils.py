@@ -4,7 +4,7 @@ import aiosmtplib
 
 # Variáveis de ambiente
 MAIL_FROM = os.getenv("MAIL_FROM")
-FRONT_URL = os.getenv("FRONT_URL", "https://api.rmtpark.com")
+FRONT_URL = os.getenv("FRONT_URL", "https://rmtpark.com")
 
 SMTP_HOST = os.getenv("MAIL_SERVER")
 SMTP_PORT = int(os.getenv("MAIL_PORT", 587))
