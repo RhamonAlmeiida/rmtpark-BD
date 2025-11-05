@@ -1,13 +1,16 @@
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from pwdlib import PasswordHash
 from typing import List
+from validate_docbr import CNPJ
 
 # Configuração do hash de senha
 password_hash = PasswordHash.recommended()
 
+
 def hash_password(password: str) -> str:
     """Gera hash seguro da senha"""
     return password_hash.hash(password)
+
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verifica se a senha em texto puro bate com o hash"""
@@ -26,8 +29,9 @@ class Plano(BaseModel):
     destaque: bool
 
     model_config = {
-        "from_attributes": True  # permite criar Plano a partir de atributos ORM
+        "from_attributes": True
     }
+
 
 # Modelo base de Empresa
 class EmpresaBase(BaseModel):
@@ -38,9 +42,9 @@ class EmpresaBase(BaseModel):
     senha: str
     plano: Plano
 
-    @validator("cnpj")
+    @field_validator("cnpj")
+    @classmethod
     def validar_cnpj(cls, value: str) -> str:
-        from validate_docbr import CNPJ
         cnpj = CNPJ()
         somente_numeros = ''.join(filter(str.isdigit, value))
         if not cnpj.validate(somente_numeros):
@@ -48,12 +52,18 @@ class EmpresaBase(BaseModel):
         return somente_numeros
 
     model_config = {
-        "from_attributes": True  # permite criar a partir de ORM
+        "from_attributes": True
     }
 
-# Modelo para criação de empresa (senha em texto puro)
+
+# Modelo para criação de empresa (aplica hash da senha)
 class EmpresaCreate(EmpresaBase):
-    senha: str = Field(..., min_length=6, max_length=20)
+
+    @field_validator("senha")
+    @classmethod
+    def hash_senha(cls, value: str) -> str:
+        return hash_password(value)
+
 
 # Modelo para retorno (sem expor senha)
 class EmpresaOut(BaseModel):

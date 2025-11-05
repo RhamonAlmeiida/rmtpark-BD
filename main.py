@@ -1,7 +1,12 @@
+import pytz
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
+from datetime import datetime
+import time
 
+os.environ['TZ'] = 'America/Sao_Paulo'
+time.tzset()
 app = FastAPI(title="RmtPark API", version="1.0.0")
 
 # 🔹 Mover o bloco CORS imediatamente após criar o app
@@ -39,6 +44,8 @@ app.include_router(relatorio.router, prefix="/api/relatorios", tags=["relatorios
 app.include_router(mensalista.router, prefix="/api/mensalistas", tags=["mensalistas"])
 app.include_router(teste_email.router, prefix="/api")
 app.include_router(admin_routes.router, prefix="/api/admin")
+
+print("🕒 Timezone ativo:", datetime.now(pytz.timezone("America/Sao_Paulo")))
 
 
 @app.get("/")

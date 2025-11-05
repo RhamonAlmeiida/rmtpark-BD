@@ -9,6 +9,7 @@ from ..database.banco_dados import get_db
 from ..schemas import vaga as vaga_schema
 from ..schemas.vaga import ConfigSchema
 from ..utils.security import get_current_empresa
+from ..utils.timezone_utils import agora_sp
 
 router = APIRouter(tags=["vagas"])
 
@@ -61,7 +62,7 @@ def criar_vaga(
     nova_vaga = Vaga(
         placa=vaga.placa.upper(),
         tipo=vaga.tipo,
-        data_hora=vaga.data_hora or datetime.now(),
+        data_hora=vaga.data_hora or agora_sp(),
         empresa_id=empresa_logada.id
     )
 
@@ -89,7 +90,7 @@ def registrar_saida(
     if not config:
         raise HTTPException(status_code=400, detail="Configurações não encontradas")
 
-    saida: datetime = dados.saida or datetime.now()
+    saida: datetime = dados.saida or agora_sp()
     duracao: timedelta = saida - vaga.data_hora
     minutos_totais = duracao.total_seconds() / 60
     arred_min = config.arredondamento or 1
