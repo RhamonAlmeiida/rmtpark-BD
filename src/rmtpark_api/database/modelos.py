@@ -133,7 +133,7 @@ class Mensalista(Base):
     nome = Column(String(255), nullable=False)
     placa = Column(String(20), nullable=False)
     veiculo = Column(String(50), nullable=False)
-    cor = Column(String(30), nullable=False)
+    cor = Column(String(30), nullable=True)
     cpf = Column(String(20), nullable=False)
     validade = Column(DateTime, nullable=False)
     status = Column(String(20), default="ativo")
