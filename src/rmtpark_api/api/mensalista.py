@@ -7,17 +7,24 @@ from src.rmtpark_api.schemas import mensalista as schemas
 
 router = APIRouter()
 
+from fastapi import HTTPException
+
 @router.post("/", response_model=schemas.Mensalista)
 def criar_mensalista(
     mensalista: schemas.MensalistaCreate,
     db: Session = Depends(get_db),
-    empresa_logada: models.Empresa = Depends(get_current_empresa)  # 👈 pega a empresa logada
+    empresa_logada: models.Empresa = Depends(get_current_empresa)
 ):
-    novo = models.Mensalista(**mensalista.dict(), empresa_id=empresa_logada.id)  # 👈 associa
-    db.add(novo)
-    db.commit()
-    db.refresh(novo)
-    return novo
+    try:
+        novo = models.Mensalista(**mensalista.dict(), empresa_id=empresa_logada.id)
+        db.add(novo)
+        db.commit()
+        db.refresh(novo)
+        return novo
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Erro ao criar mensalista: {e}")
+
 
 
 @router.get("/", response_model=list[schemas.Mensalista])
