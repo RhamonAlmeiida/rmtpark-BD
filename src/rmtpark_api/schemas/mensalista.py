@@ -12,6 +12,7 @@ class MensalistaBase(BaseModel):
     validade: datetime = Field(default_factory=agora_sp)
     status: str = "ativo"          # padrão "ativo"
     cor: Optional[str] = None
+    ultimo_pagamento: Optional[datetime] = None
 
     model_config = {
         "from_attributes": True,

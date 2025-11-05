@@ -138,5 +138,5 @@ class Mensalista(Base):
     validade = Column(DateTime, nullable=False)
     status = Column(String(20), default="ativo")
     empresa_id = Column(Integer, ForeignKey("empresas.id"), nullable=False)
-
+    ultimo_pagamento = Column(DateTime, nullable=True)
     empresa = relationship("Empresa", back_populates="mensalistas")
