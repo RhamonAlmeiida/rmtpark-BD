@@ -11,7 +11,8 @@ from ..database.modelos import Empresa
 from ..schemas.empresa import EmpresaCreate, EmpresaOut, hash_password, verify_password
 from ..utils.timezone_utils import agora_sp
 from ..utils.token_utils import create_confirmation_token, verify_confirmation_token
-from ..utils.email_utils import enviar_email_confirmacao, enviar_email_recuperacao
+from ..utils.email_utils import  enviar_email_recuperacao
+from datetime import datetime, timedelta, timezone
 
 router = APIRouter(tags=["auth"])
 
@@ -61,7 +62,7 @@ class TokenResponse(BaseModel):
     is_admin: bool = False
 
 def create_tokens(email: str):
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     access_token = jwt.encode(
         {"sub": email, "exp": now + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)},
         SECRET_KEY,
@@ -73,6 +74,7 @@ def create_tokens(email: str):
         algorithm=ALGORITHM
     )
     return access_token, refresh_token
+
 
 @router.post("/login", response_model=TokenResponse)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(banco_dados.get_db)):
