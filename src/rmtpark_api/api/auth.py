@@ -67,38 +67,38 @@ def get_current_empresa(
 # -----------------------
 # Cadastro de empresa
 # -----------------------
-@router.post("/cadastrar", response_model=EmpresaOut)
-async def cadastrar(empresa: EmpresaCreate, db: Session = Depends(banco_dados.get_db)):
-    # Verifica email e CNPJ duplicados
-    if db.query(Empresa).filter(Empresa.email == empresa.email).first():
-        raise HTTPException(status_code=400, detail="E-mail já cadastrado")
-    if db.query(Empresa).filter(Empresa.cnpj == empresa.cnpj).first():
-        raise HTTPException(status_code=400, detail="CNPJ já cadastrado")
-
-    # Cria nova empresa com senha hash
-    hashed_senha = hash_password(empresa.senha)
-    nova_empresa = Empresa(
-        nome=empresa.nome,
-        email=empresa.email,
-        telefone=''.join(filter(str.isdigit, empresa.telefone)),
-        cnpj=''.join(filter(str.isdigit, empresa.cnpj)),
-        senha=hashed_senha,
-        email_confirmado=False,
-        plano_titulo=empresa.plano.titulo,
-        plano_preco=empresa.plano.preco,
-        plano_recursos=empresa.plano.recursos,
-        plano_destaque=empresa.plano.destaque
-    )
-
-    db.add(nova_empresa)
-    db.commit()
-    db.refresh(nova_empresa)
-
-    # Cria token de confirmação e envia e-mail
-    token = create_confirmation_token(nova_empresa.email)
-    await enviar_email_confirmacao(nova_empresa.email, token)
-
-    return EmpresaOut.model_validate(nova_empresa)
+# @router.post("/cadastrar", response_model=EmpresaOut)
+# async def cadastrar(empresa: EmpresaCreate, db: Session = Depends(banco_dados.get_db)):
+#     # Verifica email e CNPJ duplicados
+#     if db.query(Empresa).filter(Empresa.email == empresa.email).first():
+#         raise HTTPException(status_code=400, detail="E-mail já cadastrado")
+#     if db.query(Empresa).filter(Empresa.cnpj == empresa.cnpj).first():
+#         raise HTTPException(status_code=400, detail="CNPJ já cadastrado")
+#
+#     # Cria nova empresa com senha hash
+#     hashed_senha = hash_password(empresa.senha)
+#     nova_empresa = Empresa(
+#         nome=empresa.nome,
+#         email=empresa.email,
+#         telefone=''.join(filter(str.isdigit, empresa.telefone)),
+#         cnpj=''.join(filter(str.isdigit, empresa.cnpj)),
+#         senha=hashed_senha,
+#         email_confirmado=False,
+#         plano_titulo=empresa.plano.titulo,
+#         plano_preco=empresa.plano.preco,
+#         plano_recursos=empresa.plano.recursos,
+#         plano_destaque=empresa.plano.destaque
+#     )
+#
+#     db.add(nova_empresa)
+#     db.commit()
+#     db.refresh(nova_empresa)
+#
+#     # Cria token de confirmação e envia e-mail
+#     token = create_confirmation_token(nova_empresa.email)
+#     await enviar_email_confirmacao(nova_empresa.email, token)
+#
+#     return EmpresaOut.model_validate(nova_empresa)
 
 # -----------------------
 # Confirmar email
