@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
 
-app = FastAPI(title="RmtPark API", version="1.0.0")
+app = FastAPI(title="RmtPark API", version="1.0.0",redirect_slashes=False)
 
 # 🔹 Mover o bloco CORS imediatamente após criar o app
 origins = [
