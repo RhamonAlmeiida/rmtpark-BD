@@ -14,6 +14,7 @@ from .auth import get_current_empresa
 router = APIRouter(prefix="", tags=["Relatórios"])
 
 @router.get("/", response_model=List[RelatorioResponse])
+@router.get("/", response_model=List[RelatorioResponse])
 def listar_relatorios(
     placa: Optional[str] = Query(None),
     tipo: Optional[str] = Query(None),
@@ -39,7 +40,10 @@ def listar_relatorios(
     elif end:
         query = query.filter(modelos.Relatorio.data_hora_entrada <= end)
 
-    return query.order_by(modelos.Relatorio.data_hora_entrada.desc()).all()
+    # Ordena pelo mais recente primeiro (decrescente)
+    query = query.order_by(modelos.Relatorio.data_hora_saida.desc())
+
+    return query.all()
 
 @router.post("/", response_model=RelatorioResponse)
 def criar_relatorio(
