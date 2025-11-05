@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from jose import jwt
 import os
+from datetime import datetime, timedelta, timezone
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
@@ -13,13 +14,19 @@ def create_tokens(email: str):
     refresh_token = jwt.encode({"sub": email, "exp": now + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS), "type": "refresh"}, SECRET_KEY, algorithm=ALGORITHM)
     return access_token, refresh_token
 
+
+
 def create_confirmation_token(email: str):
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     return jwt.encode({"sub": email, "exp": expire}, SECRET_KEY, algorithm=ALGORITHM)
+
 
 def verify_confirmation_token(token: str):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload.get("sub")
-    except:
+    except jwt.ExpiredSignatureError:
         return None
+    except jwt.JWTError:
+        return None
+

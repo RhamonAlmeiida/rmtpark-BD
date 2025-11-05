@@ -27,6 +27,11 @@ ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 ADMIN_NAME = os.getenv("ADMIN_NAME")
 SECRET_KEY = os.getenv("SECRET_KEY")
+from pydantic import BaseModel
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
 
 def criar_token(dados: dict):
     to_encode = dados.copy()
@@ -79,22 +84,29 @@ def create_tokens(email: str):
 
 @router.post("/login", response_model=TokenResponse)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(banco_dados.get_db)):
-    if form_data.username == ADMIN_EMAIL and form_data.password == ADMIN_PASSWORD:
-        access_token, refresh_token = create_tokens(ADMIN_EMAIL)
-        return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer", "is_admin": True}
-
+    # Busca empresa pelo e-mail
     empresa = db.query(Empresa).filter(Empresa.email == form_data.username).first()
-    if not empresa or not verify_password(form_data.password, empresa.senha):
+    if not empresa:
         raise HTTPException(status_code=401, detail="Credenciais inválidas")
 
+    # Verifica se o e-mail foi confirmado
     if not empresa.email_confirmado:
         raise HTTPException(status_code=403, detail="E-mail não confirmado. Confirme seu e-mail antes de fazer login.")
 
-    access_token, refresh_token = create_tokens(empresa.email)
-    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer", "is_admin": False}
+    # Verifica a senha
+    if not verify_password(form_data.password, empresa.senha):
+        raise HTTPException(status_code=401, detail="Credenciais inválidas")
 
-class RefreshTokenRequest(BaseModel):
-    refresh_token: str
+    # Gera tokens
+    access_token, refresh_token = create_tokens(empresa.email)
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "is_admin": False
+    }
+
+
 
 @router.post("/refresh-token", response_model=TokenResponse)
 def refresh_token(data: RefreshTokenRequest):
