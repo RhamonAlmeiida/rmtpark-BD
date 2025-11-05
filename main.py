@@ -9,10 +9,6 @@ origins = [
     "http://localhost:4200",
     "https://localhost:4200",
     "http://127.0.0.1:4200",
-    "https://rmtpark-tcc-u856.vercel.app",
-    "https://rmtpark-bd.onrender.com",
-    "http://72.61.33.250:8081",
-    "https://72.61.33.250:8081",
     "http://rmtpark.com",
     "https://rmtpark.com",
 ]
