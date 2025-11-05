@@ -72,6 +72,7 @@ def criar_vaga(
     return nova_vaga
 # ------------------- REGISTRAR SAÍDA -------------------
 @router.put("/{vaga_id}/saida")
+@router.put("/{vaga_id}/saida")
 def registrar_saida(
         vaga_id: int,
         dados: vaga_schema.VagaSaidaSchema,
@@ -100,29 +101,28 @@ def registrar_saida(
     duracao_str = str(timedelta(minutes=minutos_arred))
     horas = minutos_arred / 60
 
-    # cálculo do valor
+    # cálculo do valor baseado na configuração da empresa
+    valor = 0
     if vaga.tipo.lower() == "diarista":
-        valor = config.valor_diaria if config.valor_diaria > 0 else round(horas * config.valor_hora, 2)
-
+        # se a hora está configurada, calcula por hora
+        valor = round(horas * (config.valor_hora or 0), 2)
     elif vaga.tipo.lower() == "mensalista":
         mensalista = db.query(modelos.Mensalista).filter_by(
             placa=vaga.placa, empresa_id=empresa_logada.id
         ).first()
 
-        # Verifica se mensalista precisa pagar este mês
         if mensalista:
             agora = agora_sp()
             if not mensalista.ultimo_pagamento or mensalista.ultimo_pagamento.month != agora.month:
-                valor = config.valor_mensalista
+                valor = config.valor_mensalista or 0
                 mensalista.ultimo_pagamento = agora
                 db.add(mensalista)
             else:
-                valor = 0  # Já pagou esse mês
+                valor = 0  # já pagou esse mês
         else:
-            valor = config.valor_mensalista
-
+            valor = config.valor_mensalista or 0
     else:
-        valor = round(horas * config.valor_hora, 2)
+        valor = round(horas * (config.valor_hora or 0), 2)
 
     forma_pagamento = dados.formaPagamento or config.forma_pagamento
 
@@ -150,14 +150,15 @@ def registrar_saida(
     db.commit()  # Commit antes de deletar a vaga
     db.refresh(relatorio)
 
-    # Agora, se quiser deletar a vaga:
+    # Remove a vaga da lista de vagas ativas
     db.delete(vaga)
     db.commit()
 
     return {
         "success": True,
         "mensagem": "Saída registrada com sucesso",
-        "relatorio_id": relatorio.id
+        "relatorio_id": relatorio.id,
+        "valor_pago": valor
     }
 
 
