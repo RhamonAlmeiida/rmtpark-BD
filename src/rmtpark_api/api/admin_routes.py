@@ -19,7 +19,7 @@ limites_por_plano = {
 def listar_empresas(db: Session = Depends(banco_dados.get_db), _admin=Depends(require_admin)):
     empresas = db.query(modelos.Empresa).all()
     retorno = []
-    now = datetime.utcnow()
+    now = datetime.now()
 
     for e in empresas:
         total_veiculos = db.query(modelos.Vaga).filter(modelos.Vaga.empresa_id == e.id).count()
@@ -62,7 +62,7 @@ def renovar_plano(empresa_id: int, db: Session = Depends(banco_dados.get_db), _a
     empresa = db.query(modelos.Empresa).filter(modelos.Empresa.id == empresa_id).first()
     if not empresa:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
-    now = datetime.utcnow()
+    now = datetime.now()
     if empresa.data_expiracao and empresa.data_expiracao > now:
         empresa.data_expiracao = empresa.data_expiracao + timedelta(days=30)
     else:

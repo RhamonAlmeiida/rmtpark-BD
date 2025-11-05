@@ -128,7 +128,7 @@ class TokenResponse(BaseModel):
     is_admin: bool = False
 
 def create_tokens(email: str):
-    now = datetime.utcnow()
+    now = datetime.now()
 
     access_token_expires = now + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = jwt.encode(
