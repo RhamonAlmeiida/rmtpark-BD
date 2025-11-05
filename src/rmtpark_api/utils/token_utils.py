@@ -14,7 +14,7 @@ def create_tokens(email: str):
     return access_token, refresh_token
 
 def create_confirmation_token(email: str):
-    expire = datetime.now() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     return jwt.encode({"sub": email, "exp": expire}, SECRET_KEY, algorithm=ALGORITHM)
 
 def verify_confirmation_token(token: str):
