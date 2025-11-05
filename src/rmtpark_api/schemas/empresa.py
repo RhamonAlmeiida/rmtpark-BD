@@ -7,14 +7,17 @@ from validate_docbr import CNPJ
 password_hash = PasswordHash.recommended()
 
 
-def hash_password(password: str) -> str:
-    """Gera hash seguro da senha"""
-    return password_hash.hash(password)
+from passlib.context import CryptContext
 
+# Suporte a Argon2
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verifica se a senha em texto puro bate com o hash"""
-    return password_hash.verify(plain_password, hashed_password)
+    return pwd_context.verify(plain_password, hashed_password)
+
 
 
 # -------------------------------
