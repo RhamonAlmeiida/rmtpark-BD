@@ -91,6 +91,8 @@ def registrar_saida(
         raise HTTPException(status_code=400, detail="Configurações não encontradas")
 
     saida: datetime = dados.saida or agora_sp()
+
+    # cálculo da duração
     duracao: timedelta = saida - vaga.data_hora
     minutos_totais = duracao.total_seconds() / 60
     arred_min = config.arredondamento or 1
@@ -98,21 +100,40 @@ def registrar_saida(
     duracao_str = str(timedelta(minutes=minutos_arred))
     horas = minutos_arred / 60
 
+    # cálculo do valor
     if vaga.tipo.lower() == "diarista":
         valor = config.valor_diaria if config.valor_diaria > 0 else round(horas * config.valor_hora, 2)
+
     elif vaga.tipo.lower() == "mensalista":
-        valor = config.valor_mensalista
+        mensalista = db.query(modelos.Mensalista).filter_by(
+            placa=vaga.placa, empresa_id=empresa_logada.id
+        ).first()
+
+        # Verifica se mensalista precisa pagar este mês
+        if mensalista:
+            agora = agora_sp()
+            if not mensalista.ultimo_pagamento or mensalista.ultimo_pagamento.month != agora.month:
+                valor = config.valor_mensalista
+                mensalista.ultimo_pagamento = agora
+                db.add(mensalista)
+            else:
+                valor = 0  # Já pagou esse mês
+        else:
+            valor = config.valor_mensalista
+
     else:
         valor = round(horas * config.valor_hora, 2)
 
     forma_pagamento = dados.formaPagamento or config.forma_pagamento
 
+    # Atualiza a vaga
     vaga.data_hora_saida = saida
     vaga.duracao = duracao_str
     vaga.valor_pago = valor
     vaga.forma_pagamento = forma_pagamento
     vaga.status_pagamento = "Pago" if vaga.tipo.lower() == "diarista" else "Mensalista"
 
+    # Cria o relatório
     relatorio = Relatorio(
         placa=vaga.placa,
         tipo=vaga.tipo,
@@ -126,15 +147,20 @@ def registrar_saida(
     )
 
     db.add(relatorio)
+    db.commit()  # Commit antes de deletar a vaga
+    db.refresh(relatorio)
+
+    # Agora, se quiser deletar a vaga:
     db.delete(vaga)
     db.commit()
 
-    # Retorna apenas o sucesso e o ID do relatório
     return {
         "success": True,
         "mensagem": "Saída registrada com sucesso",
         "relatorio_id": relatorio.id
     }
+
+
 # ------------------- CONFIGURAÇÕES -------------------
 @router.post("/configuracoes", response_model=ConfigSchema)
 def salvar_configuracoes(
