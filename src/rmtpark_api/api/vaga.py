@@ -1,5 +1,6 @@
 # src/rmtpark_api/api/vaga.py
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime, timedelta
@@ -58,6 +59,13 @@ def criar_vaga(
             status_code=403,
             detail=f"Limite de {limite} vagas ativas atingido para o plano {empresa_logada.plano_titulo}."
         )
+
+    # 🔹 pega o último número interno usado pela empresa
+    ultimo_numero = db.query(func.max(Vaga.numero_interno))\
+                      .filter(Vaga.empresa_id == empresa_logada.id)\
+                      .scalar()
+
+    novo_numero = (ultimo_numero or 0) + 1
 
     nova_vaga = Vaga(
         placa=vaga.placa.upper(),

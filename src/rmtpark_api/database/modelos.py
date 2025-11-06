@@ -88,7 +88,7 @@ class Vaga(Base):
     valor_pago = Column(Float, nullable=True)
     forma_pagamento = Column(String(20), nullable=True)
     empresa_id = Column(Integer, ForeignKey("empresas.id"), nullable=False)
-
+    numero_interno = Column(Integer, nullable=False)
     empresa = relationship("Empresa", back_populates="vagas")
 
 
