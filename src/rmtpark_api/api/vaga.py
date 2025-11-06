@@ -68,11 +68,12 @@ def criar_vaga(
     novo_numero = (ultimo_numero or 0) + 1
 
     nova_vaga = Vaga(
+        numero_interno=novo_numero,
         placa=vaga.placa.upper(),
         tipo=vaga.tipo,
         data_hora=vaga.data_hora or agora_sp(),
         empresa_id=empresa_logada.id,
-        numero_interno=novo_numero
+
     )
 
     db.add(nova_vaga)
