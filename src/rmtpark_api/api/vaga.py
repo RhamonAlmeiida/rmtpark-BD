@@ -60,9 +60,13 @@ def criar_vaga(
             detail=f"Limite de {limite} vagas ativas atingido para o plano {empresa_logada.plano_titulo}."
         )
 
-    # 🔹 pega o último número interno global (sem filtrar por empresa)
-    ultimo_numero = db.query(func.max(Vaga.numero_interno)).scalar()
+    ultimo_numero = (
+        db.query(func.max(Vaga.numero_interno))
+        .filter(Vaga.empresa_id == empresa_logada.id)
+        .scalar()
+    )
     novo_numero = (ultimo_numero or 0) + 1
+    vaga.numero_interno = novo_numero
 
     nova_vaga = Vaga(
         numero_interno=novo_numero,
