@@ -65,10 +65,10 @@ def criar_vaga(
                       .filter(Vaga.empresa_id == empresa_logada.id)\
                       .scalar()
 
-    novo_numero = (ultimo_numero or 0) + 1
+    proximo_numero = (ultimo_numero.numero_interno + 1) if ultimo_numero else 1
 
     nova_vaga = Vaga(
-        numero_interno=novo_numero,
+        numero_interno=proximo_numero,
         placa=vaga.placa.upper(),
         tipo=vaga.tipo,
         data_hora=vaga.data_hora or agora_sp(),
