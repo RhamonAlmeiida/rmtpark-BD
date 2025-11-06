@@ -71,7 +71,8 @@ def criar_vaga(
         placa=vaga.placa.upper(),
         tipo=vaga.tipo,
         data_hora=vaga.data_hora or agora_sp(),
-        empresa_id=empresa_logada.id
+        empresa_id=empresa_logada.id,
+        numero_interno=novo_numero
     )
 
     db.add(nova_vaga)
