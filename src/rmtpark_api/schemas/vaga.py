@@ -47,6 +47,7 @@ class VagaSaidaResponse(BaseModel):
 
 class VagaResponse(BaseModel):
     id: int
+    numero_interno: int
     placa: str
     tipo: str
     data_hora: datetime = Field(default_factory=agora_sp)
@@ -64,6 +65,7 @@ class VagaResponse(BaseModel):
 
 class RelatorioResponse(BaseModel):
     id: int
+    numero_interno: int
     placa: str
     tipo: str
     data_hora_entrada: datetime = Field(default_factory=agora_sp)
