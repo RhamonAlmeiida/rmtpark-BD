@@ -60,9 +60,8 @@ def criar_vaga(
             detail=f"Limite de {limite} vagas ativas atingido para o plano {empresa_logada.plano_titulo}."
         )
 
-    ultimo_numero = db.query(func.max(Vaga.numero_interno)) \
-        .filter(Vaga.empresa_id == empresa_logada.id) \
-        .scalar()
+    # 🔹 pega o último número interno global (sem filtrar por empresa)
+    ultimo_numero = db.query(func.max(Vaga.numero_interno)).scalar()
     novo_numero = (ultimo_numero or 0) + 1
 
     nova_vaga = Vaga(
@@ -77,6 +76,7 @@ def criar_vaga(
     db.commit()
     db.refresh(nova_vaga)
     return nova_vaga
+
 
 # ------------------- REGISTRAR SAÍDA -------------------
 @router.put("/{vaga_id}/saida")
