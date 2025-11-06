@@ -35,7 +35,7 @@ def listar_vagas(
 # ------------------- CRIAR VAGA -------------------
 @router.post("/", response_model=vaga_schema.VagaResponse)
 def criar_vaga(
-    vaga: vaga_schema.VagaCreate,
+    vaga: vaga_schema.VagaCreate,  # só recebe dados do front
     db: Session = Depends(get_db),
     empresa_logada: modelos.Empresa = Depends(get_current_empresa)
 ):
@@ -49,6 +49,7 @@ def criar_vaga(
     elif "premium" in plano or "empresarial" in plano:
         limite = None
 
+    # Contar vagas ativas
     vagas_ativas = db.query(Vaga).filter(
         Vaga.empresa_id == empresa_logada.id,
         Vaga.data_hora_saida.is_(None)
@@ -60,14 +61,14 @@ def criar_vaga(
             detail=f"Limite de {limite} vagas ativas atingido para o plano {empresa_logada.plano_titulo}."
         )
 
-    ultimo_numero = (
-        db.query(func.max(Vaga.numero_interno))
-        .filter(Vaga.empresa_id == empresa_logada.id)
-        .scalar()
-    )
-    novo_numero = (ultimo_numero or 0) + 1
-    vaga.numero_interno = novo_numero
+    # Pegar o último número interno usado pela empresa
+    ultimo_numero = db.query(func.max(Vaga.numero_interno))\
+                      .filter(Vaga.empresa_id == empresa_logada.id)\
+                      .scalar()
 
+    novo_numero = (ultimo_numero or 0) + 1
+
+    # Criar a vaga ORM, usando o novo numero_interno
     nova_vaga = Vaga(
         numero_interno=novo_numero,
         placa=vaga.placa.upper(),
