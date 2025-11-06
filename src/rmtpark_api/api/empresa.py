@@ -1,4 +1,3 @@
-# src/rmtpark_api/api/empresa.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -11,9 +10,9 @@ import traceback
 import requests
 from datetime import datetime, timedelta
 import os
-
 from ..utils.email_utils import enviar_email_confirmacao
 from ..utils.token_utils import create_confirmation_token
+
 
 router = APIRouter(tags=["empresas"])
 logger = logging.getLogger(__name__)
@@ -97,7 +96,7 @@ def criar_link_pagamento_asaas(cliente_id, empresa: Empresa, dias_vencimento=5):
 # -------------------------------
 
 @router.post("/", response_model=EmpresaOut)
-async def criar_empresa(empresa: EmpresaCreate, db: Session = Depends(banco_dados.get_db)):
+async def criar_empresa(empresa: EmpresaCreate, db: Session = Depends(banco_dados.get_db), form_data=None):
     """
     Cria nova empresa, registra cliente no Asaas e gera link de pagamento
     """
@@ -141,10 +140,12 @@ async def criar_empresa(empresa: EmpresaCreate, db: Session = Depends(banco_dado
         nova_empresa.pagamento_link = pagamento_link
         db.commit()
         db.refresh(nova_empresa)
+
         token = create_confirmation_token(nova_empresa.email)
         await enviar_email_confirmacao(nova_empresa.email, token)
 
         return EmpresaOut.model_validate(nova_empresa)
+
 
     except IntegrityError:
         db.rollback()
